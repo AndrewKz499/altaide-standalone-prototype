@@ -1,6 +1,6 @@
 # AltaIDE standalone prototype
 
-Интерактивный standalone-прототип AltaIDE по Figma-узлу `21127:451709`.
+Интерактивный standalone-прототип AltaIDE по Figma-узлам `21127:451709` и `21130:521108`.
 
 ## Запуск
 
@@ -8,6 +8,8 @@
 
 ## Возможности
 
+- переход `initial → compiling` по кнопке Compile;
+- устойчивое состояние Compile `Default → Pressed`, включая Enter и Space;
 - изменение ширины Sidebar;
 - изменение высоты нижней панели;
 - переключение вкладок;

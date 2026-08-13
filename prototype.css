@@ -40,6 +40,7 @@ button:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--focus)
 .icon-button { width: 40px; height: 40px; flex: 0 0 40px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 4px; background: transparent; cursor: pointer; }
 .icon-button > img { display: block; width: 24px; height: 24px; object-fit: none; }
 .icon-button:hover { background: #3d414b; }
+.icon-button[data-state="pressed"], .icon-button[data-state="pressed"]:hover { background: var(--gray-14); }
 .toolbar-divider { width: 1px; height: 20px; margin: 0 1px; background: var(--gray-11); }
 .run-button img { transform: rotate(90deg); }
 .create-project > span { width: 18px; height: 17px; position: relative; display: block; }

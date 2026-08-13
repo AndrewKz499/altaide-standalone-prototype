@@ -7,6 +7,29 @@
   const split = document.getElementById('content-split');
   const verticalResizer = document.getElementById('vertical-resizer');
   const horizontalResizer = document.getElementById('horizontal-resizer');
+  const compileButton = document.querySelector('[data-action="compile"]');
+
+  const scenarioState = {
+    step: 'initial',
+    compileStatus: 'idle'
+  };
+
+  function renderScenarioState() {
+    const isCompiling = scenarioState.compileStatus === 'running';
+    root.dataset.scenarioStep = scenarioState.step;
+    compileButton.dataset.state = isCompiling ? 'pressed' : 'default';
+    compileButton.setAttribute('aria-pressed', String(isCompiling));
+  }
+
+  function startCompilation() {
+    if (scenarioState.compileStatus === 'running') return;
+    scenarioState.step = 'compiling';
+    scenarioState.compileStatus = 'running';
+    renderScenarioState();
+  }
+
+  compileButton.addEventListener('click', startCompilation);
+  renderScenarioState();
 
   const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
   const cssPixels = (name) => parseFloat(getComputedStyle(root).getPropertyValue(name));
