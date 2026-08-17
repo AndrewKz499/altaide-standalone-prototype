@@ -8,27 +8,987 @@
   const verticalResizer = document.getElementById('vertical-resizer');
   const horizontalResizer = document.getElementById('horizontal-resizer');
   const compileButton = document.querySelector('[data-action="compile"]');
+  const bottomTabLabel = document.getElementById('bottom-tab-label');
+  const verticalPanelButtons = [...document.querySelectorAll('.vertical-tabs button')];
+  const tableScroll = document.querySelector('.table-scroll');
+  const consoleOutput = document.getElementById('console-output');
+  const rows = document.getElementById('message-rows');
+  const counterButtons = [...document.querySelectorAll('[data-counter]')];
+  const statusbarBuild = document.getElementById('statusbar-build');
+  const statusbarLabel = document.getElementById('statusbar-label');
+  const statusbarProgress = document.getElementById('statusbar-progress-value');
+  const codeCanvas = document.querySelector('.code-canvas');
+  const sourceCode = document.querySelector('.source-code code');
+  const editorTabs = [...document.querySelectorAll('[data-editor-tab]')];
+  const treeRows = [...document.querySelectorAll('.tree-row')];
+  const messagePanelButton = document.querySelector('[data-panel="messages"]');
+  const contextFilterButton = document.querySelector('.context-actions button:last-child');
+
+  const PRESS_DELAY_MS = 800;
+  const RUNNING_DELAY_MS = 3200;
+  const EMPTY_ROW_COUNT = 17;
+
+  const DOCUMENT_TEXT = {
+    'compute-main': `FUNCTION compute : DINT
+VAR_INPUT
+  t : INT;
+END_VAR
+  compute := t * 2;
+END_FUNCTION`,
+    'compute-definition': `FUNCTION compute : DINT
+END_FUNCTION`
+  };
+
+  const CALCULATE_SOURCE = `FUNCTION calculate : DINT
+VAR_INPUT
+    t : INT;
+END_VAR
+    result := t * 5;
+    calculate := result;
+END_FUNCTION`;
+
+  const DOCUMENT_MARKUP = {
+    'compute-main': `<span class="kw" data-diagnostic-target="compute">FUNCTION</span> <span class="name" data-diagnostic-target="compute">compute</span> <span class="op">:</span> <span class="type">DINT</span>
+<span class="kw">VAR_INPUT</span>
+  <span class="name">t</span> <span class="op">:</span> <span class="type">INT</span><span class="op">;</span>
+<span class="kw">END_VAR</span>
+  <span class="name">compute</span> <span class="op">:=</span> <span class="name">t</span> <span class="op">*</span> <span class="num">2</span><span class="op">;</span>
+<span class="kw">END_FUNCTION</span>`
+  };
+
+  const CALCULATE_LINE_MARKUP = [
+    '<span class="kw">FUNCTION</span> <span class="name">calculate</span> <span class="op">:</span> <span class="type">DINT</span>',
+    '<span class="kw">VAR_INPUT</span>',
+    '    <span class="variable">t</span> <span class="op">:</span> <span class="type">INT</span><span class="op">;</span>',
+    '<span class="kw">END_VAR</span>',
+    '    <span class="result" data-diagnostic-target="result">result</span> <span class="op">:=</span> <span class="variable">t</span> <span class="math">*</span> <span class="num">5</span><span class="op">;</span>',
+    '    <span class="name">calculate</span> <span class="op">:=</span> <span class="result" data-diagnostic-target="result">result</span><span class="op">;</span>',
+    '<span class="kw">END_FUNCTION</span>'
+  ];
+
+  const CALCULATE_MARKUP = CALCULATE_LINE_MARKUP.join('\n');
+  const CALCULATE_NAVIGATION_MARKUP = CALCULATE_LINE_MARKUP
+    .map((line, index) => `<span class="source-line" data-editor-line="${index + 1}">${line}</span>`)
+    .join('');
+  const FIXED_CALCULATE_LINE_MARKUP = [
+    '<span class="kw">FUNCTION</span> <span class="name">calculate</span> <span class="op">:</span> <span class="type">DINT</span>',
+    '<span class="kw">VAR_INPUT</span>',
+    '    <span class="result">result</span> <span class="op">:</span> <span class="type">INT</span><span class="op">;</span>',
+    '    <span class="variable">t</span> <span class="op">:</span> <span class="type">INT</span><span class="op">;</span>',
+    '<span class="kw">END_VAR</span>',
+    '    <span class="result">result</span> <span class="op">:=</span> <span class="variable">t</span> <span class="math">*</span> <span class="num">5</span><span class="op">;</span>',
+    '    <span class="name">calculate</span> <span class="op">:=</span> <span class="result">result</span><span class="op">;</span>',
+    '<span class="kw">END_FUNCTION</span>'
+  ];
+  const FIXED_CALCULATE_MARKUP = FIXED_CALCULATE_LINE_MARKUP.join('\n');
+
+  const RUNNING_CONSOLE_LINES = [
+    'Запущена генерация кода',
+    'Журнал сообщений - создан',
+    'Генерация файлов',
+    'NEED YOGI implementation:Please, Build this target with fort stageII',
+    'Генерация исходных текстов завершена',
+    'executing \`C:\\Users\\t.yashina\\AppData\\Roaming\\AltaIDE\\Compiler\\bin\\castle.exe --',
+    'crate-name sys_prg code\\HardwareSpecific\\function.st code\\headers\\libc.sth',
+    'warning: 2 hidden warnings emitted',
+    'to show hidden diagnostics rerun with "--verbose" flag',
+    'executing "C:\\Users\\t.yashina\\AppData\\Roaming\\AltaIDE\\Compiler\\bin\\castle.exe --crate-name plc_prg fort\\main\\..\\..\\code\\main.st"',
+    'error: failed to resolve: could not find value "b"'
+  ];
+
+  const RECOMPILE_CONSOLE_LINES = [
+    'Запущена генерация кода',
+    'Журнал сообщений - создан',
+    'Генерация файлов',
+    'NEED YOGI implementation:Please, Build this target with fort stageII',
+    'Генерация исходных текстов завершена',
+    'executing `C:\\Users\\t.yashina\\AppData\\Roaming\\AltaIDE\\Compiler\\bin\\castle.exe --crate-name sys_prg code\\HardwareSpecific\\function.st code\\headers\\libc.sth',
+    'warning: 2 hidden warnings emitted',
+    'to show hidden diagnostics rerun with `--verbose` flag',
+    'executing `C:\\Users\\t.yashina\\AppData\\Roaming\\AltaIDE\\Compiler\\bin\\castle.exe --crate-name plc_prg fort\\main\\..\\..\\code\\main.st -',
+    'error: failed to resolve: could not find value `b`',
+    '--> C:\\Users\\t.yashina\\Documents\\Alta\\Project_9\\POU\\programm_1.st:5:1',
+    '| 5 | b:=a;',
+    '|   | ^ could not find value `b`',
+    'error: unresolved error: cannot write to a unresolved item',
+    '--> C:\\Users\\t.yashina\\Documents\\Alta\\Project_9\\POU\\programm_1.st:5:1',
+    '| 5 | b:=a;',
+    '|   | ^ cannot write to a unresolved item',
+    'error: aborting due to 3 previous errors; 2 hidden warnings emitted',
+    'error: process exited with error (exit code: 1)',
+    'command: `C:\\Users\\t.yashina\\AppData\\Roaming\\AltaIDE\\Compiler\\bin\\castle.exe --crate-name plc_prg code\\headers\\libc.sth code\\headers\\libc_user.sth code\\headers\\HSAL\\gpio_special_functions.sth`'
+  ];
+
+  const FAILED_DIAGNOSTICS = [
+    {
+      id: 'cmp101-root',
+      severity: 'error',
+      source: 'Компилятор',
+      code: 'CMP101',
+      description: "Функция 'compute' определена несколько раз. Функция с таким именем уже существует.",
+      location: '\\test\\src\\main.st:3:1'
+    },
+    {
+      id: 'cmp101-definition',
+      parentId: 'cmp101-root',
+      severity: 'info',
+      source: 'Компилятор',
+      code: 'CMP101',
+      description: "Первый раз функция 'compute' определена здесь",
+      location: '\\test\\src\\compute.st:4:1'
+    }
+  ];
+
+  const ANALYZER_DIAGNOSTICS = [
+    {
+      id: 'st001-result',
+      severity: 'error',
+      source: 'Анализатор',
+      code: 'ST001',
+      description: "Переменная 'result' не объявлена.",
+      location: 'calculate.st:5'
+    }
+  ];
+
+  const ANALYZER_COUNTERS = { error: 2, warning: 0, info: 1 };
 
   const scenarioState = {
     step: 'initial',
-    compileStatus: 'idle'
+    compileStatus: 'idle',
+    toolbar: {
+      compile: 'default'
+    },
+    bottomPanel: {
+      view: 'messages',
+      title: 'Сообщения',
+      consoleLines: []
+    },
+    diagnostics: {
+      items: [],
+      expandedIds: []
+    },
+    tree: {
+      selectedId: 'compute-main'
+    },
+    editorTabs: {
+      activeId: 'compute-a'
+    },
+    activeDocument: 'compute-main',
+    editorContent: createEditorContent('compute-main'),
+    selectedDiagnostic: null,
+    counters: {
+      error: 0,
+      warning: 0,
+      info: 0
+    },
+    statusBar: {
+      mode: 'idle',
+      label: '',
+      progress: 0
+    }
   };
 
-  function renderScenarioState() {
-    const isCompiling = scenarioState.compileStatus === 'running';
-    root.dataset.scenarioStep = scenarioState.step;
-    compileButton.dataset.state = isCompiling ? 'pressed' : 'default';
-    compileButton.setAttribute('aria-pressed', String(isCompiling));
+  let compileSequence = 0;
+  let compileTimers = [];
+
+  function createEditorContent(documentId, revealLocation = null) {
+    return {
+      document: {
+        id: documentId,
+        source: DOCUMENT_TEXT[documentId],
+        dirty: false
+      },
+      revealLocation,
+      activeLine: null,
+      highlightedLines: [],
+      validation: {
+        computeRename: {
+          satisfied: false
+        },
+        resultDeclaration: {
+          satisfied: false
+        }
+      }
+    };
   }
 
-  function startCompilation() {
-    if (scenarioState.compileStatus === 'running') return;
-    scenarioState.step = 'compiling';
-    scenarioState.compileStatus = 'running';
+  function getFunctionIdentifier(source) {
+    const match = source.match(/^FUNCTION\s+([^:\n]*?)\s*:\s*DINT/m);
+    return match ? match[1].trim() : '';
+  }
+
+  function replaceFunctionIdentifier(source, identifier) {
+    return source.replace(
+      /^(FUNCTION\s+)([^:\n]*?)(\s*:\s*DINT)/m,
+      (_, prefix, previousIdentifier, suffix) => prefix + identifier + suffix
+    );
+  }
+
+  function validateFunctionRename(source) {
+    return /^FUNCTION\s+calculate\b/m.test(source)
+      && !/^FUNCTION\s+compute\b/m.test(source);
+  }
+
+  function validateResultDeclaration(source) {
+    const variableBlock = source.match(/\bVAR_INPUT\b([\s\S]*?)\bEND_VAR\b/);
+    return Boolean(
+      variableBlock
+      && /^\s*result\s*:\s*INT\s*;\s*$/m.test(variableBlock[1])
+    );
+  }
+
+  function insertResultDeclarationLine(source, declaration) {
+    return source.replace(
+      /(\bVAR_INPUT\b\n)/,
+      `$1    ${declaration}\n`
+    );
+  }
+
+  function replaceResultDeclarationLine(source, declaration) {
+    return source.replace(
+      /(\bVAR_INPUT\b\n)[^\n]*\n/,
+      `$1    ${declaration}\n`
+    );
+  }
+
+  function getResultDeclarationDraft(source) {
+    const match = source.match(/\bVAR_INPUT\b\n[ \t]*([^\n]*)\n/);
+    return match ? match[1] : '';
+  }
+
+  function renderToolbar() {
+    const isBusy = scenarioState.compileStatus === 'pressed' || scenarioState.compileStatus === 'running';
+    root.dataset.scenarioStep = scenarioState.step;
+    compileButton.dataset.state = scenarioState.toolbar.compile;
+    compileButton.disabled = isBusy;
+    compileButton.setAttribute('aria-pressed', String(isBusy));
+    compileButton.setAttribute('aria-disabled', String(isBusy));
+  }
+
+  function renderBottomPanel() {
+    const showConsole = scenarioState.bottomPanel.view === 'console';
+    bottomTabLabel.textContent = scenarioState.bottomPanel.title;
+    verticalPanelButtons.forEach(button => {
+      const activePanel = showConsole ? 'terminal' : 'messages';
+      button.classList.toggle('is-active', button.dataset.panel === activePanel);
+    });
+    tableScroll.hidden = showConsole;
+    consoleOutput.hidden = !showConsole;
+    consoleOutput.textContent = scenarioState.bottomPanel.consoleLines.join('\n');
+  }
+
+  function createEmptyDiagnosticRow() {
+    const row = document.createElement('tr');
+    row.innerHTML = '<td></td><td></td><td></td><td></td><td></td>';
+    return row;
+  }
+
+  function createDiagnosticRow(item) {
+    const row = document.createElement('tr');
+    row.className = 'diagnostic-row';
+    row.dataset.diagnosticId = item.id;
+    if (item.parentId) row.classList.add('diagnostic-child');
+
+    const typeCell = document.createElement('td');
+    typeCell.className = 'diagnostic-type';
+    const hasChildren = scenarioState.diagnostics.items.some(candidate => candidate.parentId === item.id);
+    if (hasChildren) {
+      const expanded = scenarioState.diagnostics.expandedIds.includes(item.id);
+      const disclosure = document.createElement('button');
+      disclosure.className = 'diagnostic-disclosure';
+      disclosure.type = 'button';
+      disclosure.dataset.diagnosticId = item.id;
+      disclosure.setAttribute('aria-label', expanded ? 'Вложенная ошибка открыта' : 'Показать вложенную ошибку');
+      disclosure.setAttribute('aria-expanded', String(expanded));
+      typeCell.append(disclosure);
+    } else if (!item.parentId) {
+      const disclosureSpacer = document.createElement('span');
+      disclosureSpacer.className = 'diagnostic-disclosure-spacer';
+      disclosureSpacer.setAttribute('aria-hidden', 'true');
+      typeCell.append(disclosureSpacer);
+    }
+    const iconSlot = document.createElement('span');
+    iconSlot.className = 'diagnostic-icon-slot';
+    const icon = document.createElement('img');
+    icon.src = item.severity === 'error' ? 'assets/icons/status-error.svg' : 'assets/icons/status-info.svg';
+    icon.alt = '';
+    iconSlot.append(icon);
+    typeCell.append(iconSlot);
+
+    const sourceCell = document.createElement('td');
+    sourceCell.textContent = item.source;
+    const codeCell = document.createElement('td');
+    codeCell.textContent = item.code;
+    const descriptionCell = document.createElement('td');
+    descriptionCell.textContent = item.description;
+    const locationCell = document.createElement('td');
+    const locationIsInteractive = (
+      scenarioState.step === 'diagnostic-expanded'
+      && item.id === 'cmp101-definition'
+    ) || (
+      scenarioState.step === 'analyzer-message'
+      && item.id === 'st001-result'
+      && item.location === 'calculate.st:5'
+    );
+    const location = document.createElement(locationIsInteractive ? 'button' : 'span');
+    location.className = locationIsInteractive ? 'diagnostic-location-button' : 'diagnostic-location';
+    if (locationIsInteractive) {
+      location.type = 'button';
+      location.dataset.diagnosticLocation = item.location;
+      location.dataset.diagnosticId = item.id;
+      location.setAttribute('aria-label', `Перейти к ${item.location}`);
+    }
+    location.textContent = item.location;
+    locationCell.append(location);
+
+    row.append(typeCell, sourceCell, codeCell, descriptionCell, locationCell);
+    return row;
+  }
+
+  function renderDiagnostics() {
+    const visibleItems = scenarioState.diagnostics.items.filter(item => {
+      return !item.parentId || scenarioState.diagnostics.expandedIds.includes(item.parentId);
+    });
+    const renderedRows = visibleItems.map(createDiagnosticRow);
+    const emptyRows = Array.from(
+      { length: Math.max(0, EMPTY_ROW_COUNT - renderedRows.length) },
+      createEmptyDiagnosticRow
+    );
+    rows.replaceChildren(...renderedRows, ...emptyRows);
+  }
+
+  function handleDiagnosticDisclosureClick(event) {
+    const disclosure = event.target.closest('.diagnostic-disclosure');
+    if (!disclosure || !rows.contains(disclosure)) return;
+    if (scenarioState.step !== 'compile-failed') return;
+
+    const diagnosticId = disclosure.dataset.diagnosticId;
+    const hasNestedDiagnostic = scenarioState.diagnostics.items.some(item => item.parentId === diagnosticId);
+    if (!hasNestedDiagnostic || scenarioState.diagnostics.expandedIds.includes(diagnosticId)) return;
+
+    scenarioState.step = 'diagnostic-expanded';
+    scenarioState.diagnostics.expandedIds = [diagnosticId];
+    const parentDiagnostic = scenarioState.diagnostics.items.find(item => item.id === diagnosticId);
+    if (parentDiagnostic) parentDiagnostic.location = '\\test\\src\\compute.st:3:1';
     renderScenarioState();
   }
 
+  function handleDiagnosticLocationClick(event) {
+    const location = event.target.closest('.diagnostic-location-button');
+    if (!location || !rows.contains(location)) return;
+    if (scenarioState.step === 'analyzer-message') {
+      if (location.dataset.diagnosticId !== 'st001-result') return;
+      if (location.dataset.diagnosticLocation !== 'calculate.st:5') return;
+
+      scenarioState.step = 'analyzer-location';
+      scenarioState.tree.selectedId = 'compute-definition';
+      scenarioState.editorTabs.activeId = 'compute-b';
+      scenarioState.activeDocument = 'compute-definition';
+      scenarioState.editorContent.activeLine = 5;
+      scenarioState.editorContent.highlightedLines = [5];
+      scenarioState.editorContent.revealLocation = {
+        path: 'calculate.st',
+        line: 5,
+        column: 5
+      };
+      scenarioState.selectedDiagnostic = 'st001-result';
+      renderAnalyzerLocation();
+      return;
+    }
+    if (scenarioState.step !== 'diagnostic-expanded') return;
+    if (location.dataset.diagnosticId !== 'cmp101-definition') return;
+    if (location.dataset.diagnosticLocation !== '\\test\\src\\compute.st:4:1') return;
+
+    scenarioState.step = 'fix-error';
+    scenarioState.tree.selectedId = 'compute-definition';
+    scenarioState.editorTabs.activeId = 'compute-b';
+    scenarioState.activeDocument = 'compute-definition';
+    scenarioState.editorContent = createEditorContent(
+      'compute-definition',
+      {
+        path: '\\test\\src\\compute.st',
+        line: 4,
+        column: 1
+      }
+    );
+    scenarioState.selectedDiagnostic = 'cmp101-definition';
+    scenarioState.diagnostics.items = scenarioState.diagnostics.items.map(item => ({
+      ...item,
+      location: item.id === 'cmp101-root'
+        ? '\\test\\src\\main.st:3:1'
+        : '\\test\\src\\main.st:4:1'
+    }));
+    renderScenarioState();
+  }
+
+  function renderCounters() {
+    const labels = { error: 'Ошибки', warning: 'Предупреждения', info: 'Информация' };
+    counterButtons.forEach(button => {
+      const type = button.dataset.counter;
+      const value = scenarioState.counters[type];
+      button.querySelector('span').textContent = String(value);
+      button.setAttribute('aria-label', labels[type] + ': ' + value);
+    });
+  }
+
+  function renderStatusBar() {
+    const isBuilding = scenarioState.statusBar.mode === 'building';
+    statusbarBuild.hidden = !isBuilding;
+    statusbarLabel.textContent = scenarioState.statusBar.label;
+    statusbarProgress.style.width = (scenarioState.statusBar.progress * 100) + '%';
+  }
+
+  function renderTreeSelection() {
+    treeRows.forEach(row => {
+      const selected = row.dataset.treeNode === scenarioState.tree.selectedId;
+      row.classList.toggle('is-selected', selected);
+      if (selected) row.setAttribute('aria-selected', 'true');
+      else row.removeAttribute('aria-selected');
+    });
+  }
+
+  function renderEditorTabs() {
+    editorTabs.forEach(tab => {
+      const active = tab.dataset.editorTab === scenarioState.editorTabs.activeId;
+      tab.classList.toggle('is-active', active);
+      tab.setAttribute('aria-selected', String(active));
+    });
+  }
+
+  function renderDocumentName() {
+    const targetName = scenarioState.editorContent.validation.computeRename.satisfied
+      ? 'calculate'
+      : 'compute';
+    const treeLabel = document.querySelector(
+      '[data-tree-node="compute-definition"] > span:not(.chevron-spacer)'
+    );
+    const tabLabel = document.querySelector(
+      '[data-editor-tab="compute-b"] > span:not(.tab-close)'
+    );
+    if (treeLabel) treeLabel.textContent = targetName;
+    if (tabLabel) tabLabel.textContent = targetName;
+  }
+
+  function setIdentifierInputWidth(input) {
+    input.style.width = Math.max(1, input.value.length) + 'ch';
+  }
+
+  function renderDefinitionDocument() {
+    const editorDocument = scenarioState.editorContent.document;
+    const identifier = getFunctionIdentifier(editorDocument.source);
+    const keyword = document.createElement('span');
+    keyword.className = 'kw';
+    keyword.textContent = 'FUNCTION';
+    const identifierInput = document.createElement('input');
+    identifierInput.className = 'name editable-identifier';
+    identifierInput.type = 'text';
+    identifierInput.value = identifier;
+    identifierInput.dataset.diagnosticTarget = 'compute';
+    identifierInput.setAttribute('aria-label', 'Имя функции');
+    identifierInput.setAttribute('autocomplete', 'off');
+    identifierInput.setAttribute('autocapitalize', 'off');
+    identifierInput.setAttribute('spellcheck', 'false');
+    setIdentifierInputWidth(identifierInput);
+    const operator = document.createElement('span');
+    operator.className = 'op';
+    operator.textContent = ':';
+    const type = document.createElement('span');
+    type.className = 'type';
+    type.textContent = 'DINT';
+    const endKeyword = document.createElement('span');
+    endKeyword.className = 'kw';
+    endKeyword.textContent = 'END_FUNCTION';
+    sourceCode.replaceChildren(
+      keyword,
+      document.createTextNode(' '),
+      identifierInput,
+      document.createTextNode(' '),
+      operator,
+      document.createTextNode(' '),
+      type,
+      document.createTextNode('\n'),
+      endKeyword
+    );
+  }
+
+  function renderResultDeclarationEditor() {
+    const editorDocument = scenarioState.editorContent.document;
+    sourceCode.innerHTML = [
+      `<span class="source-line" data-editor-line="1">${FIXED_CALCULATE_LINE_MARKUP[0]}</span>`,
+      `<span class="source-line" data-editor-line="2">${FIXED_CALCULATE_LINE_MARKUP[1]}</span>`,
+      '<span class="source-line is-active-line" data-editor-line="3">    <input class="result editable-result-declaration" type="text" aria-label="Объявление переменной result" autocomplete="off" autocapitalize="off" spellcheck="false"></span>',
+      `<span class="source-line" data-editor-line="4">${FIXED_CALCULATE_LINE_MARKUP[3]}</span>`,
+      `<span class="source-line" data-editor-line="5">${FIXED_CALCULATE_LINE_MARKUP[4]}</span>`,
+      `<span class="source-line" data-editor-line="6">${FIXED_CALCULATE_LINE_MARKUP[5]}</span>`,
+      `<span class="source-line" data-editor-line="7">${FIXED_CALCULATE_LINE_MARKUP[6]}</span>`,
+      `<span class="source-line" data-editor-line="8">${FIXED_CALCULATE_LINE_MARKUP[7]}</span>`
+    ].join('');
+    const input = sourceCode.querySelector('.editable-result-declaration');
+    input.value = getResultDeclarationDraft(editorDocument.source);
+    input.style.width = Math.max(1, input.value.length) + 'ch';
+  }
+
+  function renderEditorContent() {
+    const editorDocument = scenarioState.editorContent.document;
+    if (editorDocument.id === 'compute-definition' && scenarioState.step === 'fix-error') {
+      renderDefinitionDocument();
+    } else if (editorDocument.id === 'compute-definition'
+      && scenarioState.step === 'result-declaration-editing') {
+      renderResultDeclarationEditor();
+    } else if (editorDocument.id === 'compute-definition'
+      && scenarioState.editorContent.validation.computeRename.satisfied) {
+      const showsFixedSource = [
+        'result-declaration-fixed',
+        'final-compile-pressed'
+      ].includes(scenarioState.step);
+      const markup = scenarioState.step === 'analyzer-location'
+        ? CALCULATE_NAVIGATION_MARKUP
+        : showsFixedSource
+          ? FIXED_CALCULATE_MARKUP
+          : CALCULATE_MARKUP;
+      if (sourceCode.innerHTML !== markup) sourceCode.innerHTML = markup;
+    } else {
+      const markup = DOCUMENT_MARKUP[editorDocument.id];
+      if (markup && sourceCode.innerHTML !== markup) sourceCode.innerHTML = markup;
+    }
+    sourceCode.dataset.source = editorDocument.source;
+    sourceCode.dataset.dirty = String(editorDocument.dirty);
+    sourceCode.dataset.renameValid = String(
+      scenarioState.editorContent.validation.computeRename.satisfied
+    );
+    sourceCode.dataset.resultDeclarationValid = String(
+      scenarioState.editorContent.validation.resultDeclaration.satisfied
+    );
+    if (scenarioState.step === 'final-compiling') {
+      sourceCode.dataset.visualSnapshot = 'figma-21593-702767';
+    } else {
+      delete sourceCode.dataset.visualSnapshot;
+    }
+    const activeLine = scenarioState.editorContent.activeLine;
+    const highlightedLines = scenarioState.editorContent.highlightedLines;
+    if (activeLine) sourceCode.dataset.activeLine = String(activeLine);
+    else delete sourceCode.dataset.activeLine;
+    sourceCode.dataset.highlightedLines = highlightedLines.join(',');
+    sourceCode.querySelectorAll('[data-editor-line]').forEach(line => {
+      const lineNumber = Number(line.dataset.editorLine);
+      const highlighted = highlightedLines.includes(lineNumber);
+      line.classList.toggle('is-active-line', highlighted);
+      if (lineNumber === activeLine) line.setAttribute('tabindex', '-1');
+      else line.removeAttribute('tabindex');
+    });
+    const target = scenarioState.editorContent.revealLocation;
+    if (target) {
+      sourceCode.dataset.revealPath = target.path;
+      sourceCode.dataset.revealLine = String(target.line);
+      sourceCode.dataset.revealColumn = String(target.column);
+      const targetLine = sourceCode.querySelector(`[data-editor-line="${target.line}"]`);
+      if (targetLine) {
+        const canvasBounds = codeCanvas.getBoundingClientRect();
+        const lineBounds = targetLine.getBoundingClientRect();
+        if (lineBounds.top < canvasBounds.top || lineBounds.bottom > canvasBounds.bottom) {
+          codeCanvas.scrollTop = Math.max(0, targetLine.offsetTop - codeCanvas.clientHeight / 2);
+        }
+        codeCanvas.scrollLeft = 0;
+        targetLine.focus({ preventScroll: true });
+      } else {
+        codeCanvas.scrollTop = 0;
+        codeCanvas.scrollLeft = 0;
+      }
+    } else {
+      delete sourceCode.dataset.revealPath;
+      delete sourceCode.dataset.revealLine;
+      delete sourceCode.dataset.revealColumn;
+    }
+  }
+
+  function handleEditableIdentifierInput(event) {
+    const input = event.target.closest('.editable-identifier');
+    if (!input || !sourceCode.contains(input)) return;
+    if (scenarioState.step !== 'fix-error') return;
+    if (scenarioState.activeDocument !== 'compute-definition') return;
+
+    const nextIdentifier = input.value.replace(/[^A-Za-z0-9_]/g, '');
+    const editorDocument = scenarioState.editorContent.document;
+    editorDocument.source = replaceFunctionIdentifier(editorDocument.source, nextIdentifier);
+    editorDocument.dirty = true;
+    scenarioState.editorContent.validation.computeRename.satisfied = validateFunctionRename(
+      editorDocument.source
+    );
+
+    input.value = getFunctionIdentifier(editorDocument.source);
+    setIdentifierInputWidth(input);
+    sourceCode.dataset.source = editorDocument.source;
+    sourceCode.dataset.dirty = String(editorDocument.dirty);
+    sourceCode.dataset.renameValid = String(
+      scenarioState.editorContent.validation.computeRename.satisfied
+    );
+    renderDocumentName();
+  }
+
+  function beginResultDeclarationEdit(initialValue = '') {
+    if (scenarioState.step !== 'analyzer-location') return;
+    if (scenarioState.activeDocument !== 'compute-definition') return;
+
+    const editorDocument = scenarioState.editorContent.document;
+    editorDocument.source = insertResultDeclarationLine(editorDocument.source, initialValue);
+    editorDocument.dirty = true;
+    scenarioState.step = 'result-declaration-editing';
+    scenarioState.editorContent.activeLine = 3;
+    scenarioState.editorContent.highlightedLines = [3];
+    scenarioState.editorContent.revealLocation = {
+      path: 'calculate.st',
+      line: 3,
+      column: 5
+    };
+    scenarioState.editorContent.validation.resultDeclaration.satisfied = false;
+    renderToolbar();
+    renderEditorContent();
+    renderDiagnosticSurfaces();
+    const input = sourceCode.querySelector('.editable-result-declaration');
+    if (input) {
+      input.focus({ preventScroll: true });
+      input.setSelectionRange(input.value.length, input.value.length);
+    }
+  }
+
+  function handleResultDeclarationStart(event) {
+    if (scenarioState.step !== 'analyzer-location') return;
+    const activeLine = event.target.closest('[data-editor-line="5"]');
+    if (!activeLine || !sourceCode.contains(activeLine)) return;
+    const printableCharacter = event.key.length === 1
+      && !event.ctrlKey
+      && !event.metaKey
+      && !event.altKey;
+    if (event.key !== 'Enter' && !printableCharacter) return;
+
+    event.preventDefault();
+    beginResultDeclarationEdit(printableCharacter ? event.key : '');
+  }
+
+  function handleResultDeclarationInput(event) {
+    const input = event.target.closest('.editable-result-declaration');
+    if (!input || !sourceCode.contains(input)) return;
+    if (scenarioState.step !== 'result-declaration-editing') return;
+
+    const declaration = input.value.replace(/[\r\n]/g, '');
+    const editorDocument = scenarioState.editorContent.document;
+    editorDocument.source = replaceResultDeclarationLine(editorDocument.source, declaration);
+    editorDocument.dirty = true;
+    const satisfied = validateResultDeclaration(editorDocument.source);
+    scenarioState.editorContent.validation.resultDeclaration.satisfied = satisfied;
+    input.value = getResultDeclarationDraft(editorDocument.source);
+    input.style.width = Math.max(1, input.value.length) + 'ch';
+    sourceCode.dataset.source = editorDocument.source;
+    sourceCode.dataset.dirty = 'true';
+    sourceCode.dataset.resultDeclarationValid = String(satisfied);
+
+    if (!satisfied) return;
+
+    scenarioState.step = 'result-declaration-fixed';
+    scenarioState.editorContent.activeLine = null;
+    scenarioState.editorContent.highlightedLines = [];
+    scenarioState.editorContent.revealLocation = null;
+    scenarioState.diagnostics.items = [];
+    scenarioState.diagnostics.expandedIds = [];
+    scenarioState.selectedDiagnostic = null;
+    renderResultDeclarationFixed();
+  }
+
+  function renderDiagnosticSurfaces() {
+    const compilationFailed = scenarioState.compileStatus === 'failed';
+    const resultDeclarationResolved = [
+      'result-declaration-fixed',
+      'final-compile-pressed',
+      'final-compiling'
+    ].includes(scenarioState.step);
+    const diagnosticExpanded = scenarioState.step === 'diagnostic-expanded';
+    const fixingError = scenarioState.step === 'fix-error';
+    const showsAnalyzerResult = [
+      'recompiling',
+      'recompile-complete-console',
+      'analyzer-message',
+      'analyzer-location',
+      'result-declaration-editing'
+    ].includes(scenarioState.step);
+    const diagnosticTargets = [...document.querySelectorAll('[data-diagnostic-target="compute"]')];
+    diagnosticTargets.forEach(target => {
+      const functionKeyword = target.matches('.source-code .kw');
+      const editorTab = target.matches('.editor-tab');
+      const treeRow = target.matches('.tree-row');
+      const showDiagnostic = resultDeclarationResolved
+        ? false
+        : showsAnalyzerResult
+        ? treeRow
+        : compilationFailed
+        && (!functionKeyword || (!diagnosticExpanded && !fixingError))
+        && (!editorTab || !fixingError);
+      target.classList.toggle('has-diagnostic', showDiagnostic);
+      target.classList.toggle('has-diagnostic-badge', scenarioState.step === 'compile-failed');
+    });
+    const computeSourceTokens = [...document.querySelectorAll('.source-code .name')]
+      .filter(token => token.textContent === 'compute');
+    computeSourceTokens.forEach(token => token.classList.toggle(
+      'has-diagnostic',
+      compilationFailed && !showsAnalyzerResult
+    ));
+    const resultTokens = [...document.querySelectorAll('[data-diagnostic-target="result"]')];
+    resultTokens.forEach(token => token.classList.toggle(
+      'has-diagnostic',
+      showsAnalyzerResult || scenarioState.step === 'final-compiling'
+    ));
+    messagePanelButton.classList.toggle(
+      'has-notification',
+      scenarioState.compileStatus === 'running'
+        || scenarioState.step === 'recompile-complete-console'
+        || scenarioState.step === 'analyzer-message'
+        || scenarioState.step === 'analyzer-location'
+        || scenarioState.step === 'result-declaration-editing'
+    );
+    contextFilterButton.classList.toggle(
+      'has-notification',
+      compilationFailed && !resultDeclarationResolved
+    );
+  }
+
+  function renderScenarioState() {
+    renderToolbar();
+    renderBottomPanel();
+    renderDiagnostics();
+    renderCounters();
+    renderStatusBar();
+    renderTreeSelection();
+    renderEditorTabs();
+    renderEditorContent();
+    renderDocumentName();
+    renderDiagnosticSurfaces();
+  }
+
+  function renderAnalyzerLocation() {
+    renderToolbar();
+    renderDiagnostics();
+    renderTreeSelection();
+    renderEditorTabs();
+    renderEditorContent();
+    renderDocumentName();
+    renderDiagnosticSurfaces();
+  }
+
+  function renderResultDeclarationFixed() {
+    renderToolbar();
+    renderDiagnostics();
+    renderEditorContent();
+    renderDocumentName();
+    renderDiagnosticSurfaces();
+  }
+
+  function renderFinalCompilePressed() {
+    renderToolbar();
+    renderStatusBar();
+    renderDiagnosticSurfaces();
+  }
+
+  function renderFinalCompiling() {
+    renderToolbar();
+    renderBottomPanel();
+    renderDiagnostics();
+    renderCounters();
+    renderStatusBar();
+    renderEditorContent();
+    renderDiagnosticSurfaces();
+  }
+
+  function setInitialVisualState() {
+    scenarioState.step = 'initial';
+    scenarioState.compileStatus = 'idle';
+    scenarioState.toolbar.compile = 'default';
+    scenarioState.bottomPanel.view = 'messages';
+    scenarioState.bottomPanel.title = 'Сообщения';
+    scenarioState.bottomPanel.consoleLines = [];
+    scenarioState.diagnostics.items = [];
+    scenarioState.diagnostics.expandedIds = [];
+    scenarioState.tree.selectedId = 'compute-main';
+    scenarioState.editorTabs.activeId = 'compute-a';
+    scenarioState.activeDocument = 'compute-main';
+    scenarioState.editorContent = createEditorContent('compute-main');
+    scenarioState.selectedDiagnostic = null;
+    scenarioState.counters = { error: 0, warning: 0, info: 0 };
+    scenarioState.statusBar = { mode: 'idle', label: '', progress: 0 };
+  }
+
+  function enterPressed(sequence) {
+    if (sequence !== compileSequence) return;
+    scenarioState.step = 'compile-pressed';
+    scenarioState.compileStatus = 'pressed';
+    scenarioState.toolbar.compile = 'pressed';
+    scenarioState.bottomPanel.view = 'messages';
+    scenarioState.bottomPanel.title = 'Сообщения';
+    scenarioState.bottomPanel.consoleLines = [];
+    scenarioState.diagnostics.items = [];
+    scenarioState.diagnostics.expandedIds = [];
+    scenarioState.counters = { error: 0, warning: 0, info: 0 };
+    scenarioState.statusBar = { mode: 'idle', label: '', progress: 0 };
+    renderScenarioState();
+
+    compileTimers.push(window.setTimeout(() => enterRunning(sequence), PRESS_DELAY_MS));
+  }
+
+  function enterRunning(sequence) {
+    if (sequence !== compileSequence) return;
+    scenarioState.step = 'compiling';
+    scenarioState.compileStatus = 'running';
+    scenarioState.toolbar.compile = 'active';
+    scenarioState.bottomPanel.view = 'console';
+    scenarioState.bottomPanel.title = 'Консоль';
+    scenarioState.bottomPanel.consoleLines = [...RUNNING_CONSOLE_LINES];
+    scenarioState.diagnostics.items = [];
+    scenarioState.diagnostics.expandedIds = [];
+    scenarioState.counters = { error: 0, warning: 0, info: 0 };
+    scenarioState.statusBar = { mode: 'building', label: 'Сборка проекта', progress: 0.4 };
+    renderScenarioState();
+
+    compileTimers.push(window.setTimeout(() => enterFailed(sequence), RUNNING_DELAY_MS));
+  }
+
+  function enterFailed(sequence) {
+    if (sequence !== compileSequence) return;
+    scenarioState.step = 'compile-failed';
+    scenarioState.compileStatus = 'failed';
+    scenarioState.toolbar.compile = 'default';
+    scenarioState.bottomPanel.view = 'messages';
+    scenarioState.bottomPanel.title = 'Сообщения';
+    scenarioState.bottomPanel.consoleLines = [];
+    scenarioState.diagnostics.items = FAILED_DIAGNOSTICS.map(item => ({ ...item }));
+    scenarioState.diagnostics.expandedIds = [];
+    scenarioState.counters = { error: 1, warning: 0, info: 1 };
+    scenarioState.statusBar = { mode: 'idle', label: '', progress: 0 };
+    compileTimers = [];
+    renderScenarioState();
+  }
+
+  function enterRecompilePressed(sequence) {
+    if (sequence !== compileSequence) return;
+    scenarioState.step = 'recompile-pressed';
+    scenarioState.compileStatus = 'pressed';
+    scenarioState.toolbar.compile = 'pressed';
+    scenarioState.statusBar = { mode: 'idle', label: '', progress: 0 };
+    renderScenarioState();
+
+    compileTimers.push(window.setTimeout(
+      () => enterRecompiling(sequence),
+      PRESS_DELAY_MS
+    ));
+  }
+
+  function enterRecompiling(sequence) {
+    if (sequence !== compileSequence) return;
+    scenarioState.step = 'recompiling';
+    scenarioState.compileStatus = 'running';
+    scenarioState.toolbar.compile = 'active';
+    scenarioState.bottomPanel.view = 'console';
+    scenarioState.bottomPanel.title = 'Консоль';
+    scenarioState.bottomPanel.consoleLines = [...RECOMPILE_CONSOLE_LINES];
+    scenarioState.diagnostics.items = [];
+    scenarioState.diagnostics.expandedIds = [];
+    scenarioState.editorContent.document.source = CALCULATE_SOURCE;
+    scenarioState.editorContent.document.dirty = true;
+    scenarioState.counters = { error: 0, warning: 0, info: 0 };
+    scenarioState.statusBar = { mode: 'building', label: 'Сборка проекта', progress: 0.4 };
+    renderScenarioState();
+
+    compileTimers.push(window.setTimeout(
+      () => enterRecompileCompleteConsole(sequence),
+      RUNNING_DELAY_MS
+    ));
+  }
+
+  function enterRecompileCompleteConsole(sequence) {
+    if (sequence !== compileSequence) return;
+    scenarioState.step = 'recompile-complete-console';
+    scenarioState.compileStatus = 'failed';
+    scenarioState.toolbar.compile = 'default';
+    scenarioState.bottomPanel.view = 'console';
+    scenarioState.bottomPanel.title = 'Консоль';
+    scenarioState.diagnostics.items = ANALYZER_DIAGNOSTICS.map(item => ({ ...item }));
+    scenarioState.diagnostics.expandedIds = [];
+    scenarioState.selectedDiagnostic = null;
+    scenarioState.counters = { ...ANALYZER_COUNTERS };
+    scenarioState.statusBar = { mode: 'idle', label: '', progress: 0 };
+    compileTimers = [];
+    renderScenarioState();
+  }
+
+  function showAnalyzerMessages() {
+    if (scenarioState.step !== 'recompile-complete-console') return;
+    scenarioState.step = 'analyzer-message';
+    scenarioState.bottomPanel.view = 'messages';
+    scenarioState.bottomPanel.title = 'Сообщения';
+    scenarioState.counters = { ...ANALYZER_COUNTERS };
+    renderScenarioState();
+  }
+
+  function revalidateFinalCompilationSource() {
+    const source = scenarioState.editorContent.document.source;
+    const computeRenameSatisfied = validateFunctionRename(source);
+    const resultDeclarationSatisfied = validateResultDeclaration(source);
+    scenarioState.editorContent.validation.computeRename.satisfied = computeRenameSatisfied;
+    scenarioState.editorContent.validation.resultDeclaration.satisfied = resultDeclarationSatisfied;
+    return computeRenameSatisfied && resultDeclarationSatisfied;
+  }
+
+  function enterFinalCompilePressed(sequence) {
+    if (sequence !== compileSequence) return;
+    scenarioState.step = 'final-compile-pressed';
+    scenarioState.compileStatus = 'pressed';
+    scenarioState.toolbar.compile = 'pressed';
+    scenarioState.statusBar = { mode: 'idle', label: '', progress: 0 };
+    renderFinalCompilePressed();
+
+    compileTimers.push(window.setTimeout(
+      () => enterFinalCompiling(sequence),
+      PRESS_DELAY_MS
+    ));
+  }
+
+  function enterFinalCompiling(sequence) {
+    if (sequence !== compileSequence) return;
+    scenarioState.step = 'final-compiling';
+    scenarioState.compileStatus = 'running';
+    scenarioState.toolbar.compile = 'active';
+    scenarioState.bottomPanel.view = 'console';
+    scenarioState.bottomPanel.title = 'Консоль';
+    scenarioState.bottomPanel.consoleLines = [...RECOMPILE_CONSOLE_LINES];
+    scenarioState.diagnostics.items = [];
+    scenarioState.diagnostics.expandedIds = [];
+    scenarioState.counters = { error: 0, warning: 0, info: 0 };
+    scenarioState.statusBar = { mode: 'building', label: 'Сборка проекта', progress: 0.4 };
+    compileTimers = [];
+    renderFinalCompiling();
+  }
+
+  function startCompilation() {
+    if (scenarioState.compileStatus === 'pressed' || scenarioState.compileStatus === 'running') return;
+    const startsFinalCompilation = scenarioState.step === 'result-declaration-fixed';
+    if (startsFinalCompilation && !revalidateFinalCompilationSource()) return;
+    const startsRecompile = scenarioState.step === 'fix-error'
+      && scenarioState.editorContent.document.dirty
+      && scenarioState.editorContent.validation.computeRename.satisfied;
+    if (scenarioState.step === 'fix-error' && !startsRecompile) return;
+    if (scenarioState.step !== 'initial' && !startsRecompile && !startsFinalCompilation) return;
+    compileTimers.forEach(timer => window.clearTimeout(timer));
+    compileTimers = [];
+    compileSequence += 1;
+    if (startsFinalCompilation) enterFinalCompilePressed(compileSequence);
+    else if (startsRecompile) enterRecompilePressed(compileSequence);
+    else enterPressed(compileSequence);
+  }
+
   compileButton.addEventListener('click', startCompilation);
+  rows.addEventListener('click', handleDiagnosticDisclosureClick);
+  rows.addEventListener('click', handleDiagnosticLocationClick);
+  sourceCode.addEventListener('input', handleEditableIdentifierInput);
+  sourceCode.addEventListener('keydown', handleResultDeclarationStart);
+  sourceCode.addEventListener('input', handleResultDeclarationInput);
+  setInitialVisualState();
   renderScenarioState();
 
   const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
@@ -103,14 +1063,7 @@
     return line;
   }));
 
-  const rows = document.getElementById('message-rows');
-  rows.replaceChildren(...Array.from({ length: 17 }, () => {
-    const row = document.createElement('tr');
-    row.innerHTML = '<td></td><td></td><td></td><td></td><td></td>';
-    return row;
-  }));
-
-  document.querySelectorAll('.editor-tab').forEach(tab => {
+  editorTabs.forEach(tab => {
     tab.addEventListener('click', () => {
       document.querySelectorAll('.editor-tab').forEach(item => {
         const active = item === tab;
@@ -120,7 +1073,7 @@
     });
   });
 
-  document.querySelectorAll('.tree-row').forEach(row => {
+  treeRows.forEach(row => {
     row.addEventListener('click', () => {
       document.querySelectorAll('.tree-row').forEach(item => {
         item.classList.remove('is-selected');
@@ -131,12 +1084,25 @@
     });
   });
 
-  const panelNames = { terminal: 'Терминал', messages: 'Сообщения', variables: 'Переменные' };
-  document.querySelectorAll('.vertical-tabs button').forEach(button => {
-    button.addEventListener('click', () => {
-      document.querySelectorAll('.vertical-tabs button').forEach(item => item.classList.toggle('is-active', item === button));
-      document.getElementById('bottom-tab-label').textContent = panelNames[button.dataset.panel];
-    });
+  function handleBottomPanelSwitch(event) {
+    const button = event.currentTarget;
+    if (scenarioState.compileStatus === 'pressed' || scenarioState.compileStatus === 'running') return;
+    if (scenarioState.step === 'recompile-complete-console'
+      && button.dataset.panel === 'messages') {
+      showAnalyzerMessages();
+      if (event.detail > 0) button.blur();
+      return;
+    }
+    scenarioState.bottomPanel.view = button.dataset.panel === 'terminal' ? 'console' : 'messages';
+    scenarioState.bottomPanel.title = button.dataset.panel === 'terminal'
+      ? 'Консоль'
+      : button.dataset.panel === 'variables' ? 'Переменные' : 'Сообщения';
+    renderBottomPanel();
+    if (event.detail > 0) button.blur();
+  }
+
+  verticalPanelButtons.forEach(button => {
+    button.addEventListener('click', handleBottomPanelSwitch);
   });
 
   document.querySelectorAll('.bottom-tabs button').forEach(tab => {

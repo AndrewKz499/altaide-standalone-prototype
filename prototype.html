@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>AltaIDE — standalone prototype</title>
   <link rel="icon" href="data:,">
-  <link rel="stylesheet" href="prototype.css?v=3">
+  <link rel="stylesheet" href="prototype.css?v=4">
 </head>
 <body>
   <main class="ide" aria-label="Прототип AltaIDE">
@@ -55,8 +55,8 @@
           <button class="tree-row" style="--level:0" type="button" role="treeitem" aria-expanded="true"><img class="chevron" src="assets/icons/tree-chevron-expanded.svg" alt=""><img class="tree-icon" src="assets/icons/tree-plc.svg" alt=""><span>Устройство (ПЛК)</span></button>
           <button class="tree-row" style="--level:1" type="button" role="treeitem" aria-expanded="true"><img class="chevron" src="assets/icons/tree-chevron-expanded.svg" alt=""><img class="tree-icon" src="assets/icons/tree-pou-folder.svg" alt=""><span>Программные блоки (POU)</span></button>
           <button class="tree-row" style="--level:2" type="button" role="treeitem" aria-expanded="true"><img class="chevron" src="assets/icons/tree-chevron-expanded.svg" alt=""><img class="tree-icon" src="assets/icons/tree-folder.svg" alt=""><span>Новая папка</span></button>
-          <button class="tree-row" style="--level:4" type="button" role="treeitem"><span class="chevron-spacer"></span><img class="tree-icon" src="assets/icons/tree-function-block.svg" alt=""><span>compute</span><em>FB</em></button>
-          <button class="tree-row is-selected" style="--level:3" type="button" role="treeitem" aria-selected="true"><span class="chevron-spacer"></span><img class="tree-icon" src="assets/icons/tree-function-block.svg" alt=""><span>compute</span><em>FB</em></button>
+          <button class="tree-row" style="--level:4" type="button" role="treeitem" data-tree-node="compute-definition" data-diagnostic-target="compute"><span class="chevron-spacer"></span><img class="tree-icon" src="assets/icons/tree-function-block.svg" alt=""><span>compute</span><em>FB</em></button>
+          <button class="tree-row is-selected" style="--level:3" type="button" role="treeitem" aria-selected="true" data-tree-node="compute-main" data-diagnostic-target="compute"><span class="chevron-spacer"></span><img class="tree-icon" src="assets/icons/tree-function-block.svg" alt=""><span>compute</span><em>FB</em></button>
           <button class="tree-row" style="--level:3" type="button" role="treeitem"><span class="chevron-spacer"></span><img class="tree-icon" src="assets/icons/tree-function-block.svg" alt=""><span>FB</span><em>FB</em></button>
           <button class="tree-row text-only" style="--level:4" type="button" role="treeitem"><span class="chevron-spacer"></span><span class="tree-icon"></span><span>FUN</span><em>FUN</em></button>
           <button class="tree-row" style="--level:1" type="button" role="treeitem" aria-expanded="true"><img class="chevron" src="assets/icons/tree-chevron-expanded.svg" alt=""><img class="tree-icon" src="assets/icons/tree-task-manager-folder.svg" alt=""><span>Менеджер задач</span></button>
@@ -83,14 +83,14 @@
 
       <section class="content-area" aria-label="Рабочая область">
         <div class="editor-tabs" role="tablist" aria-label="Открытые программы">
-          <button class="editor-tab is-active" type="button" role="tab" aria-selected="true" data-editor-tab="compute-a"><img src="assets/icons/tree-function-block.svg" alt=""><span>compute</span><span class="tab-close" aria-hidden="true"></span></button>
-          <button class="editor-tab" type="button" role="tab" aria-selected="false" data-editor-tab="compute-b"><img src="assets/icons/tree-function-block.svg" alt=""><span>compute</span><span class="tab-close" aria-hidden="true"></span></button>
+          <button class="editor-tab is-active" type="button" role="tab" aria-selected="true" data-editor-tab="compute-a" data-diagnostic-target="compute"><img src="assets/icons/tree-function-block.svg" alt=""><span>compute</span><span class="tab-close" aria-hidden="true"></span></button>
+          <button class="editor-tab" type="button" role="tab" aria-selected="false" data-editor-tab="compute-b" data-diagnostic-target="compute"><img src="assets/icons/tree-function-block.svg" alt=""><span>compute</span><span class="tab-close" aria-hidden="true"></span></button>
         </div>
 
         <div class="content-split" id="content-split">
           <section class="code-canvas" aria-label="Редактор кода">
             <div class="code-lines" aria-hidden="true"></div>
-            <pre class="source-code"><code><span class="kw">FUNCTION</span> <span class="name">compute</span> <span class="op">:</span> <span class="type">DINT</span>
+            <pre class="source-code"><code><span class="kw" data-diagnostic-target="compute">FUNCTION</span> <span class="name" data-diagnostic-target="compute">compute</span> <span class="op">:</span> <span class="type">DINT</span>
 <span class="kw">VAR_INPUT</span>
   <span class="name">t</span> <span class="op">:</span> <span class="type">INT</span><span class="op">;</span>
 <span class="kw">END_VAR</span>
@@ -107,12 +107,12 @@
               <button type="button" data-panel="variables" aria-label="Переменные"><img src="assets/icons/panel-variables.svg" alt=""></button>
             </nav>
             <div class="bottom-content">
-              <div class="bottom-tabs" role="tablist" aria-label="Вкладки нижней панели"><button class="is-active" type="button" role="tab" aria-selected="true" id="bottom-tab-label">Сообщения</button><button type="button" role="tab" aria-selected="false">Проблемы</button></div>
+              <div class="bottom-tabs" role="tablist" aria-label="Вкладки нижней панели"><button class="is-active" type="button" role="tab" aria-selected="true" id="bottom-tab-label">Сообщения</button><button type="button" role="tab" aria-selected="false" hidden>Проблемы</button></div>
               <div class="context-toolbar" role="toolbar" aria-label="Фильтры сообщений">
                 <div class="status-counters">
-                  <button type="button" aria-label="Ошибки: 0"><img src="assets/icons/status-error.svg" alt=""><span>0</span></button>
-                  <button type="button" aria-label="Предупреждения: 0"><img src="assets/icons/status-warning.svg" alt=""><span>0</span></button>
-                  <button type="button" aria-label="Информация: 0"><img src="assets/icons/status-info.svg" alt=""><span>0</span></button>
+                  <button type="button" aria-label="Ошибки: 0" data-counter="error"><img src="assets/icons/status-error.svg" alt=""><span>0</span></button>
+                  <button type="button" aria-label="Предупреждения: 0" data-counter="warning"><img src="assets/icons/status-warning.svg" alt=""><span>0</span></button>
+                  <button type="button" aria-label="Информация: 0" data-counter="info"><img src="assets/icons/status-info.svg" alt=""><span>0</span></button>
                 </div>
                 <div class="context-actions"><button type="button" aria-label="Найти"><img src="assets/icons/context-search.svg" alt=""></button><button type="button" aria-label="Фильтр"><img src="assets/icons/context-filter.svg" alt=""></button></div>
                 <button class="context-more" type="button" aria-label="Дополнительные действия"><img src="assets/icons/context-more.svg" alt=""></button>
@@ -124,14 +124,21 @@
                   <tbody id="message-rows"></tbody>
                 </table>
               </div>
+              <pre class="console-output" id="console-output" tabindex="0" aria-label="Консоль компиляции" hidden></pre>
             </div>
           </section>
         </div>
       </section>
     </div>
 
-    <footer class="statusbar" aria-label="Строка состояния"></footer>
+    <footer class="statusbar" aria-label="Строка состояния">
+      <div class="statusbar-build" id="statusbar-build" hidden>
+        <span id="statusbar-label"></span>
+        <span class="statusbar-progress" aria-hidden="true"><span id="statusbar-progress-value"></span></span>
+        <span class="statusbar-close" aria-hidden="true"></span>
+      </div>
+    </footer>
   </main>
-  <script src="prototype.js?v=3"></script>
+  <script src="prototype.js?v=4"></script>
 </body>
 </html>
