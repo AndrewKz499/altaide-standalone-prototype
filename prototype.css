@@ -31,21 +31,18 @@ button:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--focus)
 
 .topbar { min-width: 0; overflow: hidden; }
 .menubar { height: 40px; display: flex; align-items: center; gap: 24px; padding: 0 10px; overflow: hidden; background: linear-gradient(90deg, #690c4c 0%, #1f4ea7 47%, #0a1557 100%); }
-.alta-logo { width: 92.615px; height: 14px; margin: 0 8px; flex: 0 0 auto; }
+.alta-logo { width: 92.615px; height: 14px; margin: 0 8px; flex: 0 0 auto; display: block; object-fit: contain; }
 .menu-links { height: 40px; display: flex; flex: 1 0 auto; align-items: center; min-width: max-content; }
 .menu-links button { height: 40px; padding: 10px 16px; border: 0; background: transparent; white-space: nowrap; font-size: 14px; line-height: 20px; cursor: default; }
 .menu-links button:hover { background: rgba(255,255,255,.08); }
 .toolbar { height: 40px; display: flex; align-items: flex-start; gap: 4px; background: var(--gray-13); overflow: hidden; }
 .toolbar-group { height: 40px; display: flex; align-items: center; gap: 10px; padding: 0 12px; }
 .icon-button { width: 40px; height: 40px; flex: 0 0 40px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 4px; background: transparent; cursor: pointer; }
-.icon-button > img { display: block; width: 24px; height: 24px; object-fit: none; }
+.icon-button > img { display: block; width: 20px; height: 20px; object-fit: contain; }
 .icon-button:hover { background: #3d414b; }
 .icon-button[data-state="pressed"], .icon-button[data-state="pressed"]:hover { background: var(--gray-14); }
 .toolbar-divider { width: 1px; height: 20px; margin: 0 1px; background: var(--gray-11); }
 .run-button img { transform: rotate(90deg); }
-.create-project > span { width: 18px; height: 17px; position: relative; display: block; }
-.create-project > span img:first-child { position: absolute; left: 0; top: 1px; width: 17px; height: 14px; }
-.create-project > span img:last-child { position: absolute; right: 0; bottom: 0; width: 7px; height: 7px; }
 
 .workspace { min-height: 0; min-width: 0; display: grid; grid-template-columns: var(--sidebar-width) var(--vertical-resize-size) minmax(0,1fr); overflow: hidden; }
 .sidebar { min-width: 0; min-height: 0; display: flex; flex-direction: column; overflow: hidden; background: var(--gray-13); }
@@ -56,20 +53,14 @@ button:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--focus)
 .project-actions { gap: 2px; }
 .project-head button { width: 20px; height: 20px; flex: 0 0 20px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 3px; background: transparent; cursor: pointer; }
 .project-head button:hover { background: var(--gray-12); }
-.project-head img { width: 20px; height: 20px; object-fit: none; }
+.project-head img { width: 20px; height: 20px; display: block; object-fit: contain; }
 .tree { min-height: 0; overflow-x: hidden; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--gray-11) transparent; }
 .tree-row { --indent-step: 26px; width: 100%; height: 32px; display: flex; align-items: center; gap: 6px; padding: 6px 10px 6px calc(10px + var(--level) * var(--indent-step)); border: 0; background: transparent; text-align: left; white-space: nowrap; cursor: pointer; overflow: hidden; }
 .tree-row:hover { background: #383b42; }
 .tree-row.is-selected { background: var(--active-blue); }
 .tree-row > span:not(.tree-icon):not(.chevron-spacer) { min-width: 0; overflow: hidden; text-overflow: ellipsis; line-height: 20px; }
 .tree-row em { flex: 0 0 auto; color: var(--gray-9); font-weight: 300; font-style: italic; line-height: 20px; }
-.tree-icon, .chevron { width: 20px; height: 20px; flex: 0 0 20px; object-fit: none; }
-.global-var-icon { position: relative; display: block; }
-.global-var-icon img:first-child { position: absolute; left: 2.61px; top: 2.61px; width: 15px; height: 15px; }
-.global-var-icon img:last-child { position: absolute; left: 2.61px; top: 2.61px; width: 15.941px; height: 15.941px; }
-.type-folder-icon { position: relative; display: block; }
-.type-folder-icon img:first-child { position: absolute; left: 2px; top: 3.5px; width: 16px; height: 13px; }
-.type-folder-icon img:last-child { position: absolute; left: 6.7px; top: 10.9px; width: 13.624px; height: 6.408px; }
+.tree-icon, .chevron { width: 20px; height: 20px; flex: 0 0 20px; display: block; object-fit: contain; }
 .chevron-spacer { display: none; }
 .chevron { padding: 0; }
 
@@ -92,7 +83,7 @@ body.is-resizing-horizontal, body.is-resizing-horizontal * { cursor: row-resize 
 .editor-tab { height: 40px; display: flex; align-items: center; gap: 7px; padding: 10px 14px; border: 0; border-bottom: 2px solid transparent; background: var(--gray-14); color: var(--gray-7); line-height: 20px; cursor: pointer; }
 .editor-tab:hover { background: #303238; }
 .editor-tab.is-active { border-bottom-color: var(--accent); }
-.editor-tab img { width: 20px; height: 20px; object-fit: none; }
+.editor-tab img { width: 20px; height: 20px; display: block; object-fit: contain; }
 .tab-close { width: 12px; height: 12px; margin-left: 5px; position: relative; flex: 0 0 12px; }
 .tab-close::before, .tab-close::after { content: ""; position: absolute; left: 5px; top: 2px; width: 1px; height: 9px; background: #aeb2ba; }
 .tab-close::before { transform: rotate(45deg); }.tab-close::after { transform: rotate(-45deg); }
@@ -109,9 +100,7 @@ body.is-resizing-horizontal, body.is-resizing-horizontal * { cursor: row-resize 
 .vertical-tabs { min-height: 0; padding: 4px 2px; display: flex; flex-direction: column; align-items: center; gap: 0; border-top: 1px solid var(--gray-12); border-right: 1px solid var(--gray-12); border-bottom: 1px solid var(--gray-12); background: var(--gray-14); }
 .vertical-tabs button { width: 40px; height: 40px; flex: 0 0 40px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 6px; background: transparent; cursor: pointer; }
 .vertical-tabs button:hover, .vertical-tabs button.is-active { background: var(--gray-13); }
-.vertical-tabs img { width: 22px; height: 22px; object-fit: contain; }
-.vertical-tabs button:nth-child(1) img { width: 17px; height: 17px; }
-.vertical-tabs button:nth-child(2) img { width: 18.4px; height: 17.1px; }
+.vertical-tabs img { width: 22px; height: 22px; display: block; object-fit: contain; }
 .bottom-content { min-width: 0; min-height: 0; display: grid; grid-template-rows: 40px 33px minmax(0,1fr); overflow: hidden; }
 .bottom-tabs { min-width: 0; display: flex; border-top: 1px solid var(--gray-12); border-bottom: 1px solid var(--gray-11); background: var(--gray-14); }
 .bottom-tabs button { height: 40px; padding: 10px 14px 8px; border: 0; border-bottom: 2px solid transparent; background: transparent; cursor: pointer; }
@@ -119,12 +108,10 @@ body.is-resizing-horizontal, body.is-resizing-horizontal * { cursor: row-resize 
 .context-toolbar { min-width: 0; height: 33px; display: flex; align-items: center; gap: 16px; padding: 0 12px; border-bottom: 1px solid var(--gray-12); background: var(--gray-13); }
 .status-counters, .context-actions { display: flex; align-items: center; gap: 6px; }
 .status-counters button { height: 20px; display: flex; align-items: center; gap: 2px; padding: 0 4px; border: 0; border-radius: 4px; background: var(--gray-11); font-size: 12px; cursor: pointer; }
-.status-counters img { width: 14px; height: 14px; }
+.status-counters img { width: 14px; height: 14px; display: block; object-fit: contain; }
 .context-actions button, .context-more { width: 20px; height: 20px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 4px; background: transparent; cursor: pointer; }
 .context-actions button:first-child { background: var(--gray-11); }
-.context-actions img, .context-more img { width: 20px; height: 20px; }
-.context-actions button:first-child img { width: 12px; height: 12px; }
-.context-more img { width: 2px; height: 10px; }
+.context-actions img, .context-more img { width: 20px; height: 20px; display: block; object-fit: contain; }
 .context-toolbar button:hover { filter: brightness(1.18); }
 .context-more { margin-left: auto; }
 .table-scroll { min-width: 0; min-height: 0; overflow: auto; background: var(--gray-14); scrollbar-width: thin; scrollbar-color: var(--gray-11) transparent; }
@@ -135,7 +122,7 @@ body.is-resizing-horizontal, body.is-resizing-horizontal * { cursor: row-resize 
 .messages-table td { background: var(--gray-14); }
 .messages-table tbody tr:hover td { background: #2b2e33; }
 .messages-table .sortable { display: flex; align-items: center; justify-content: space-between; }
-.messages-table .sortable img { width: 5px; height: 9px; }
+.messages-table .sortable img { width: 16px; height: 16px; display: block; object-fit: contain; }
 .statusbar { min-width: 0; border-top: 1px solid #222225; background: var(--gray-13); }
 
 @media (max-width: 1100px) {
