@@ -101,6 +101,7 @@ body.is-resizing-horizontal, body.is-resizing-horizontal * { cursor: row-resize 
 .code-lines { grid-column: 1; min-height: 800px; padding-top: 8px; border-right: 1px solid var(--gray-12); color: var(--gray-7); text-align: center; counter-reset: line; }
 .code-lines span { display: block; height: 20px; line-height: 20px; }
 .source-code { grid-column: 2; margin: 0; min-width: 700px; padding: 8px 18px; color: var(--gray-7); font: inherit; line-height: 20px; white-space: pre; tab-size: 2; }
+.source-code code.is-editable-source { display: block; min-height: 100%; outline: 0; caret-color: var(--gray-1); }
 .kw { color: #00a9de; } .name { color: #03a6c4; } .type { color: #e4c347; } .op { color: #df775e; } .num { color: #f3a1dd; }
 .variable { color: #7f73e9; }
 .result { color: #988df7; }

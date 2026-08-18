@@ -27,6 +27,10 @@
   const PRESS_DELAY_MS = 800;
   const RUNNING_DELAY_MS = 3200;
   const EMPTY_ROW_COUNT = 17;
+  const TAB_DOCUMENT_IDS = {
+    'compute-a': 'compute-main',
+    'compute-b': 'compute-definition'
+  };
 
   const DOCUMENT_TEXT = {
     'compute-main': `FUNCTION compute : DINT
@@ -39,13 +43,11 @@ END_FUNCTION`,
 END_FUNCTION`
   };
 
-  const CALCULATE_SOURCE = `FUNCTION calculate : DINT
-VAR_INPUT
-    t : INT;
-END_VAR
-    result := t * 5;
-    calculate := result;
+  const CALCULATE_DEFINITION_SOURCE = `FUNCTION calculate : DINT
 END_FUNCTION`;
+
+  const CALCULATE_DEFINITION_MARKUP = `<span class="kw">FUNCTION</span> <span class="name">calculate</span> <span class="op">:</span> <span class="type">DINT</span>
+<span class="kw">END_FUNCTION</span>`;
 
   const DOCUMENT_MARKUP = {
     'compute-main': `<span class="kw" data-diagnostic-target="compute">FUNCTION</span> <span class="name" data-diagnostic-target="compute">compute</span> <span class="op">:</span> <span class="type">DINT</span>
@@ -53,6 +55,8 @@ END_FUNCTION`;
   <span class="name">t</span> <span class="op">:</span> <span class="type">INT</span><span class="op">;</span>
 <span class="kw">END_VAR</span>
   <span class="name">compute</span> <span class="op">:=</span> <span class="name">t</span> <span class="op">*</span> <span class="num">2</span><span class="op">;</span>
+<span class="kw">END_FUNCTION</span>`,
+    'compute-definition': `<span class="kw" data-diagnostic-target="compute">FUNCTION</span> <span class="name" data-diagnostic-target="compute">compute</span> <span class="op">:</span> <span class="type">DINT</span>
 <span class="kw">END_FUNCTION</span>`
   };
 
@@ -76,8 +80,8 @@ END_FUNCTION`;
     '    <span class="result">result</span> <span class="op">:</span> <span class="type">INT</span><span class="op">;</span>',
     '    <span class="variable">t</span> <span class="op">:</span> <span class="type">INT</span><span class="op">;</span>',
     '<span class="kw">END_VAR</span>',
-    '    <span class="result">result</span> <span class="op">:=</span> <span class="variable">t</span> <span class="math">*</span> <span class="num">5</span><span class="op">;</span>',
-    '    <span class="name">calculate</span> <span class="op">:=</span> <span class="result">result</span><span class="op">;</span>',
+    '    <span class="result" data-diagnostic-target="result">result</span> <span class="op">:=</span> <span class="variable">t</span> <span class="math">*</span> <span class="num">5</span><span class="op">;</span>',
+    '    <span class="name">calculate</span> <span class="op">:=</span> <span class="result" data-diagnostic-target="result">result</span><span class="op">;</span>',
     '<span class="kw">END_FUNCTION</span>'
   ];
   const FIXED_CALCULATE_MARKUP = FIXED_CALCULATE_LINE_MARKUP.join('\n');
@@ -151,6 +155,7 @@ END_FUNCTION`;
   ];
 
   const ANALYZER_COUNTERS = { error: 2, warning: 0, info: 1 };
+  const initialEditorContents = createEditorContents();
 
   const scenarioState = {
     step: 'initial',
@@ -173,8 +178,9 @@ END_FUNCTION`;
     editorTabs: {
       activeId: 'compute-a'
     },
+    documents: initialEditorContents,
     activeDocument: 'compute-main',
-    editorContent: createEditorContent('compute-main'),
+    editorContent: initialEditorContents['compute-main'],
     selectedDiagnostic: null,
     counters: {
       error: 0,
@@ -205,11 +211,20 @@ END_FUNCTION`;
         computeRename: {
           satisfied: false
         },
+        calculateBody: {
+          satisfied: false
+        },
         resultDeclaration: {
           satisfied: false
         }
       }
     };
+  }
+
+  function createEditorContents() {
+    return Object.fromEntries(
+      Object.keys(DOCUMENT_TEXT).map(documentId => [documentId, createEditorContent(documentId)])
+    );
   }
 
   function getFunctionIdentifier(source) {
@@ -229,6 +244,30 @@ END_FUNCTION`;
       && !/^FUNCTION\s+compute\b/m.test(source);
   }
 
+  function validateCalculateBody(source) {
+    const lines = source
+      .replace(/\r\n?/g, '\n')
+      .split('\n')
+      .map(line => line.trim())
+      .filter(Boolean);
+    const requiredLines = [
+      /^FUNCTION\s+calculate\s*:\s*DINT$/,
+      /^VAR_INPUT$/,
+      /^t\s*:\s*INT\s*;$/,
+      /^END_VAR$/,
+      /^result\s*:=\s*t\s*\*\s*5\s*;$/,
+      /^calculate\s*:=\s*result\s*;$/,
+      /^END_FUNCTION$/
+    ];
+    let cursor = 0;
+    return requiredLines.every(pattern => {
+      const nextIndex = lines.findIndex((line, index) => index >= cursor && pattern.test(line));
+      if (nextIndex < 0) return false;
+      cursor = nextIndex + 1;
+      return true;
+    });
+  }
+
   function validateResultDeclaration(source) {
     const variableBlock = source.match(/\bVAR_INPUT\b([\s\S]*?)\bEND_VAR\b/);
     return Boolean(
@@ -240,14 +279,14 @@ END_FUNCTION`;
   function insertResultDeclarationLine(source, declaration) {
     return source.replace(
       /(\bVAR_INPUT\b\n)/,
-      `$1    ${declaration}\n`
+      `$1  ${declaration}\n`
     );
   }
 
   function replaceResultDeclarationLine(source, declaration) {
     return source.replace(
       /(\bVAR_INPUT\b\n)[^\n]*\n/,
-      `$1    ${declaration}\n`
+      `$1  ${declaration}\n`
     );
   }
 
@@ -403,14 +442,14 @@ END_FUNCTION`;
     scenarioState.tree.selectedId = 'compute-definition';
     scenarioState.editorTabs.activeId = 'compute-b';
     scenarioState.activeDocument = 'compute-definition';
-    scenarioState.editorContent = createEditorContent(
-      'compute-definition',
-      {
-        path: '\\test\\src\\compute.st',
-        line: 4,
-        column: 1
-      }
-    );
+    scenarioState.editorContent = scenarioState.documents['compute-definition'];
+    scenarioState.editorContent.revealLocation = {
+      path: '\\test\\src\\compute.st',
+      line: 4,
+      column: 1
+    };
+    scenarioState.editorContent.activeLine = null;
+    scenarioState.editorContent.highlightedLines = [];
     scenarioState.selectedDiagnostic = 'cmp101-definition';
     scenarioState.diagnostics.items = scenarioState.diagnostics.items.map(item => ({
       ...item,
@@ -456,7 +495,8 @@ END_FUNCTION`;
   }
 
   function renderDocumentName() {
-    const targetName = scenarioState.editorContent.validation.computeRename.satisfied
+    const definitionContent = scenarioState.documents['compute-definition'];
+    const targetName = definitionContent.validation.computeRename.satisfied
       ? 'calculate'
       : 'compute';
     const treeLabel = document.querySelector(
@@ -511,6 +551,36 @@ END_FUNCTION`;
     );
   }
 
+  function setCalculateBodyEditorEnabled(enabled) {
+    if (enabled) {
+      sourceCode.contentEditable = 'plaintext-only';
+      sourceCode.classList.add('is-editable-source');
+      sourceCode.dataset.editorMode = 'calculate-body';
+      sourceCode.setAttribute('role', 'textbox');
+      sourceCode.setAttribute('aria-label', 'Исходный код calculate');
+      sourceCode.setAttribute('aria-multiline', 'true');
+      sourceCode.setAttribute('spellcheck', 'false');
+      return;
+    }
+    sourceCode.contentEditable = 'false';
+    sourceCode.classList.remove('is-editable-source');
+    delete sourceCode.dataset.editorMode;
+    sourceCode.removeAttribute('role');
+    sourceCode.removeAttribute('aria-label');
+    sourceCode.removeAttribute('aria-multiline');
+    sourceCode.removeAttribute('spellcheck');
+  }
+
+  function renderCalculateBodyEditor() {
+    const editorDocument = scenarioState.editorContent.document;
+    if (editorDocument.source === CALCULATE_DEFINITION_SOURCE) {
+      sourceCode.innerHTML = CALCULATE_DEFINITION_MARKUP;
+    } else {
+      sourceCode.textContent = editorDocument.source;
+    }
+    setCalculateBodyEditorEnabled(true);
+  }
+
   function renderResultDeclarationEditor() {
     const editorDocument = scenarioState.editorContent.document;
     sourceCode.innerHTML = [
@@ -530,7 +600,16 @@ END_FUNCTION`;
 
   function renderEditorContent() {
     const editorDocument = scenarioState.editorContent.document;
-    if (editorDocument.id === 'compute-definition' && scenarioState.step === 'fix-error') {
+    setCalculateBodyEditorEnabled(false);
+    const editsCalculateBody = editorDocument.id === 'compute-definition'
+      && scenarioState.step === 'fix-error'
+      && scenarioState.editorContent.validation.computeRename.satisfied
+      && !scenarioState.editorContent.validation.calculateBody.satisfied;
+    if (editsCalculateBody) {
+      renderCalculateBodyEditor();
+    } else if (editorDocument.id === 'compute-definition'
+      && scenarioState.step === 'fix-error'
+      && !scenarioState.editorContent.validation.computeRename.satisfied) {
       renderDefinitionDocument();
     } else if (editorDocument.id === 'compute-definition'
       && scenarioState.step === 'result-declaration-editing') {
@@ -555,6 +634,9 @@ END_FUNCTION`;
     sourceCode.dataset.dirty = String(editorDocument.dirty);
     sourceCode.dataset.renameValid = String(
       scenarioState.editorContent.validation.computeRename.satisfied
+    );
+    sourceCode.dataset.calculateBodyValid = String(
+      scenarioState.editorContent.validation.calculateBody.satisfied
     );
     sourceCode.dataset.resultDeclarationValid = String(
       scenarioState.editorContent.validation.resultDeclaration.satisfied
@@ -622,7 +704,50 @@ END_FUNCTION`;
     sourceCode.dataset.renameValid = String(
       scenarioState.editorContent.validation.computeRename.satisfied
     );
+    scenarioState.editorContent.validation.calculateBody.satisfied = false;
+    sourceCode.dataset.calculateBodyValid = 'false';
+    const renameSatisfied = scenarioState.editorContent.validation.computeRename.satisfied;
+    if (renameSatisfied) renderEditorContent();
     renderDocumentName();
+    renderDiagnosticSurfaces();
+  }
+
+  function applyCalculateBodySource(source) {
+    const editorDocument = scenarioState.editorContent.document;
+    editorDocument.source = source.replace(/\r\n?/g, '\n');
+    editorDocument.dirty = true;
+    const satisfied = validateCalculateBody(editorDocument.source);
+    scenarioState.editorContent.validation.calculateBody.satisfied = satisfied;
+    sourceCode.dataset.source = editorDocument.source;
+    sourceCode.dataset.dirty = 'true';
+    sourceCode.dataset.calculateBodyValid = String(satisfied);
+    if (!satisfied) return;
+
+    scenarioState.diagnostics.items = [
+      ...ANALYZER_DIAGNOSTICS.map(item => ({ ...item })),
+      ...FAILED_DIAGNOSTICS.map(item => ({ ...item }))
+    ];
+    scenarioState.counters = { ...ANALYZER_COUNTERS };
+    scenarioState.selectedDiagnostic = null;
+    renderEditorContent();
+    renderDiagnostics();
+    renderCounters();
+    renderDiagnosticSurfaces();
+  }
+
+  function handleCalculateBodyInput(event) {
+    if (event.target !== sourceCode) return;
+    if (sourceCode.dataset.editorMode !== 'calculate-body') return;
+    applyCalculateBodySource(sourceCode.innerText.replace(/\u00a0/g, ' '));
+  }
+
+  function handleCalculateBodyPaste(event) {
+    if (sourceCode.dataset.editorMode !== 'calculate-body') return;
+    const pastedSource = event.clipboardData?.getData('text/plain');
+    if (!pastedSource) return;
+    event.preventDefault();
+    sourceCode.textContent = pastedSource;
+    applyCalculateBodySource(pastedSource);
   }
 
   function beginResultDeclarationEdit(initialValue = '') {
@@ -691,19 +816,28 @@ END_FUNCTION`;
     scenarioState.diagnostics.items = [];
     scenarioState.diagnostics.expandedIds = [];
     scenarioState.selectedDiagnostic = null;
+    scenarioState.counters = { ...ANALYZER_COUNTERS };
     renderResultDeclarationFixed();
   }
 
   function renderDiagnosticSurfaces() {
     const compilationFailed = scenarioState.compileStatus === 'failed';
+    const computeConflictUnresolved = compilationFailed
+      && !scenarioState.documents['compute-definition'].validation.computeRename.satisfied;
     const resultDeclarationResolved = [
       'result-declaration-fixed',
       'final-compile-pressed',
       'final-compiling'
     ].includes(scenarioState.step);
-    const diagnosticExpanded = scenarioState.step === 'diagnostic-expanded';
-    const fixingError = scenarioState.step === 'fix-error';
     const showsAnalyzerResult = [
+      'recompiling',
+      'recompile-complete-console',
+      'analyzer-message',
+      'analyzer-location',
+      'result-declaration-editing'
+    ].includes(scenarioState.step)
+      || scenarioState.documents['compute-definition'].validation.calculateBody.satisfied;
+    const limitsAnalyzerMarkerToCalculate = [
       'recompiling',
       'recompile-complete-console',
       'analyzer-message',
@@ -712,38 +846,35 @@ END_FUNCTION`;
     ].includes(scenarioState.step);
     const diagnosticTargets = [...document.querySelectorAll('[data-diagnostic-target="compute"]')];
     diagnosticTargets.forEach(target => {
-      const functionKeyword = target.matches('.source-code .kw');
-      const editorTab = target.matches('.editor-tab');
       const treeRow = target.matches('.tree-row');
-      const showDiagnostic = resultDeclarationResolved
-        ? false
-        : showsAnalyzerResult
-        ? treeRow
-        : compilationFailed
-        && (!functionKeyword || (!diagnosticExpanded && !fixingError))
-        && (!editorTab || !fixingError);
+      const isCalculateTreeRow = target.dataset.treeNode === 'compute-definition';
+      const showDiagnostic = treeRow
+        && !resultDeclarationResolved
+        && (
+          computeConflictUnresolved
+          || (showsAnalyzerResult && (!limitsAnalyzerMarkerToCalculate || isCalculateTreeRow))
+        );
       target.classList.toggle('has-diagnostic', showDiagnostic);
-      target.classList.toggle('has-diagnostic-badge', scenarioState.step === 'compile-failed');
+      target.classList.remove('has-diagnostic-badge');
     });
     const computeSourceTokens = [...document.querySelectorAll('.source-code .name')]
-      .filter(token => token.textContent === 'compute');
+      .filter(token => (
+        token.matches('input') ? token.value === 'compute' : token.textContent === 'compute'
+      ));
     computeSourceTokens.forEach(token => token.classList.toggle(
       'has-diagnostic',
-      compilationFailed && !showsAnalyzerResult
+      computeConflictUnresolved && !showsAnalyzerResult
     ));
     const resultTokens = [...document.querySelectorAll('[data-diagnostic-target="result"]')];
     resultTokens.forEach(token => token.classList.toggle(
       'has-diagnostic',
-      showsAnalyzerResult || scenarioState.step === 'final-compiling'
+      (!resultDeclarationResolved && showsAnalyzerResult)
+        || scenarioState.step === 'final-compiling'
     ));
-    messagePanelButton.classList.toggle(
-      'has-notification',
-      scenarioState.compileStatus === 'running'
-        || scenarioState.step === 'recompile-complete-console'
-        || scenarioState.step === 'analyzer-message'
-        || scenarioState.step === 'analyzer-location'
-        || scenarioState.step === 'result-declaration-editing'
-    );
+    messagePanelButton.classList.toggle('has-notification', [
+      'compiling',
+      'final-compiling'
+    ].includes(scenarioState.step));
     contextFilterButton.classList.toggle(
       'has-notification',
       compilationFailed && !resultDeclarationResolved
@@ -776,6 +907,7 @@ END_FUNCTION`;
   function renderResultDeclarationFixed() {
     renderToolbar();
     renderDiagnostics();
+    renderCounters();
     renderEditorContent();
     renderDocumentName();
     renderDiagnosticSurfaces();
@@ -808,8 +940,9 @@ END_FUNCTION`;
     scenarioState.diagnostics.expandedIds = [];
     scenarioState.tree.selectedId = 'compute-main';
     scenarioState.editorTabs.activeId = 'compute-a';
+    scenarioState.documents = createEditorContents();
     scenarioState.activeDocument = 'compute-main';
-    scenarioState.editorContent = createEditorContent('compute-main');
+    scenarioState.editorContent = scenarioState.documents['compute-main'];
     scenarioState.selectedDiagnostic = null;
     scenarioState.counters = { error: 0, warning: 0, info: 0 };
     scenarioState.statusBar = { mode: 'idle', label: '', progress: 0 };
@@ -854,9 +987,8 @@ END_FUNCTION`;
     scenarioState.step = 'compile-failed';
     scenarioState.compileStatus = 'failed';
     scenarioState.toolbar.compile = 'default';
-    scenarioState.bottomPanel.view = 'messages';
-    scenarioState.bottomPanel.title = 'Сообщения';
-    scenarioState.bottomPanel.consoleLines = [];
+    scenarioState.bottomPanel.view = 'console';
+    scenarioState.bottomPanel.title = 'Консоль';
     scenarioState.diagnostics.items = FAILED_DIAGNOSTICS.map(item => ({ ...item }));
     scenarioState.diagnostics.expandedIds = [];
     scenarioState.counters = { error: 1, warning: 0, info: 1 };
@@ -889,8 +1021,6 @@ END_FUNCTION`;
     scenarioState.bottomPanel.consoleLines = [...RECOMPILE_CONSOLE_LINES];
     scenarioState.diagnostics.items = [];
     scenarioState.diagnostics.expandedIds = [];
-    scenarioState.editorContent.document.source = CALCULATE_SOURCE;
-    scenarioState.editorContent.document.dirty = true;
     scenarioState.counters = { error: 0, warning: 0, info: 0 };
     scenarioState.statusBar = { mode: 'building', label: 'Сборка проекта', progress: 0.4 };
     renderScenarioState();
@@ -924,6 +1054,29 @@ END_FUNCTION`;
     scenarioState.bottomPanel.title = 'Сообщения';
     scenarioState.counters = { ...ANALYZER_COUNTERS };
     renderScenarioState();
+  }
+
+  function showCompilationMessages() {
+    if (scenarioState.step !== 'compile-failed') return;
+    if (scenarioState.bottomPanel.view !== 'console') return;
+    scenarioState.bottomPanel.view = 'messages';
+    scenarioState.bottomPanel.title = 'Сообщения';
+    renderBottomPanel();
+    renderDiagnostics();
+    renderCounters();
+  }
+
+  function revalidateRecompileSource() {
+    const source = scenarioState.editorContent.document.source;
+    const computeRenameSatisfied = validateFunctionRename(source);
+    const calculateBodySatisfied = validateCalculateBody(source);
+    const resultDeclarationSatisfied = validateResultDeclaration(source);
+    scenarioState.editorContent.validation.computeRename.satisfied = computeRenameSatisfied;
+    scenarioState.editorContent.validation.calculateBody.satisfied = calculateBodySatisfied;
+    scenarioState.editorContent.validation.resultDeclaration.satisfied = resultDeclarationSatisfied;
+    return computeRenameSatisfied
+      && calculateBodySatisfied
+      && !resultDeclarationSatisfied;
   }
 
   function revalidateFinalCompilationSource() {
@@ -967,18 +1120,15 @@ END_FUNCTION`;
 
   function startCompilation() {
     if (scenarioState.compileStatus === 'pressed' || scenarioState.compileStatus === 'running') return;
-    const startsFinalCompilation = scenarioState.step === 'result-declaration-fixed';
-    if (startsFinalCompilation && !revalidateFinalCompilationSource()) return;
     const startsRecompile = scenarioState.step === 'fix-error'
       && scenarioState.editorContent.document.dirty
-      && scenarioState.editorContent.validation.computeRename.satisfied;
+      && revalidateRecompileSource();
     if (scenarioState.step === 'fix-error' && !startsRecompile) return;
-    if (scenarioState.step !== 'initial' && !startsRecompile && !startsFinalCompilation) return;
+    if (scenarioState.step !== 'initial' && !startsRecompile) return;
     compileTimers.forEach(timer => window.clearTimeout(timer));
     compileTimers = [];
     compileSequence += 1;
-    if (startsFinalCompilation) enterFinalCompilePressed(compileSequence);
-    else if (startsRecompile) enterRecompilePressed(compileSequence);
+    if (startsRecompile) enterRecompilePressed(compileSequence);
     else enterPressed(compileSequence);
   }
 
@@ -986,6 +1136,8 @@ END_FUNCTION`;
   rows.addEventListener('click', handleDiagnosticDisclosureClick);
   rows.addEventListener('click', handleDiagnosticLocationClick);
   sourceCode.addEventListener('input', handleEditableIdentifierInput);
+  sourceCode.addEventListener('input', handleCalculateBodyInput);
+  sourceCode.addEventListener('paste', handleCalculateBodyPaste);
   sourceCode.addEventListener('keydown', handleResultDeclarationStart);
   sourceCode.addEventListener('input', handleResultDeclarationInput);
   setInitialVisualState();
@@ -1014,7 +1166,11 @@ END_FUNCTION`;
 
   function beginDrag(event, axis) {
     if (event.button !== 0) return;
-    event.currentTarget.setPointerCapture(event.pointerId);
+    const target = event.currentTarget;
+    const pointerId = event.pointerId;
+    let isActive = true;
+
+    target.setPointerCapture(pointerId);
     body.classList.add('is-resizing', `is-resizing-${axis}`);
 
     const move = (moveEvent) => {
@@ -1028,15 +1184,19 @@ END_FUNCTION`;
     };
 
     const stop = () => {
+      if (!isActive) return;
+      isActive = false;
       body.classList.remove('is-resizing', `is-resizing-${axis}`);
-      event.currentTarget.removeEventListener('pointermove', move);
-      event.currentTarget.removeEventListener('pointerup', stop);
-      event.currentTarget.removeEventListener('pointercancel', stop);
+      target.removeEventListener('pointermove', move);
+      target.removeEventListener('pointerup', stop);
+      target.removeEventListener('pointercancel', stop);
+      target.removeEventListener('lostpointercapture', stop);
     };
 
-    event.currentTarget.addEventListener('pointermove', move);
-    event.currentTarget.addEventListener('pointerup', stop);
-    event.currentTarget.addEventListener('pointercancel', stop);
+    target.addEventListener('pointermove', move);
+    target.addEventListener('pointerup', stop);
+    target.addEventListener('pointercancel', stop);
+    target.addEventListener('lostpointercapture', stop);
   }
 
   verticalResizer.addEventListener('pointerdown', event => beginDrag(event, 'vertical'));
@@ -1065,11 +1225,18 @@ END_FUNCTION`;
 
   editorTabs.forEach(tab => {
     tab.addEventListener('click', () => {
-      document.querySelectorAll('.editor-tab').forEach(item => {
-        const active = item === tab;
-        item.classList.toggle('is-active', active);
-        item.setAttribute('aria-selected', String(active));
-      });
+      const tabId = tab.dataset.editorTab;
+      const documentId = TAB_DOCUMENT_IDS[tabId];
+      if (!documentId || !scenarioState.documents[documentId]) return;
+      scenarioState.editorTabs.activeId = tabId;
+      scenarioState.activeDocument = documentId;
+      scenarioState.editorContent = scenarioState.documents[documentId];
+      scenarioState.tree.selectedId = documentId;
+      renderEditorTabs();
+      renderTreeSelection();
+      renderEditorContent();
+      renderDocumentName();
+      renderDiagnosticSurfaces();
     });
   });
 
@@ -1087,6 +1254,13 @@ END_FUNCTION`;
   function handleBottomPanelSwitch(event) {
     const button = event.currentTarget;
     if (scenarioState.compileStatus === 'pressed' || scenarioState.compileStatus === 'running') return;
+    if (scenarioState.step === 'compile-failed'
+      && scenarioState.bottomPanel.view === 'console'
+      && button.dataset.panel === 'messages') {
+      showCompilationMessages();
+      if (event.detail > 0) button.blur();
+      return;
+    }
     if (scenarioState.step === 'recompile-complete-console'
       && button.dataset.panel === 'messages') {
       showAnalyzerMessages();
