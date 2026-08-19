@@ -40,13 +40,16 @@ END_VAR
   compute := t * 2;
 END_FUNCTION`,
     'compute-definition': `FUNCTION compute : DINT
+
 END_FUNCTION`
   };
 
   const CALCULATE_DEFINITION_SOURCE = `FUNCTION calculate : DINT
+
 END_FUNCTION`;
 
   const CALCULATE_DEFINITION_MARKUP = `<span class="kw">FUNCTION</span> <span class="name">calculate</span> <span class="op">:</span> <span class="type">DINT</span>
+
 <span class="kw">END_FUNCTION</span>`;
 
   const DOCUMENT_MARKUP = {
@@ -57,12 +60,14 @@ END_FUNCTION`;
   <span class="name">compute</span> <span class="op">:=</span> <span class="name">t</span> <span class="op">*</span> <span class="num">2</span><span class="op">;</span>
 <span class="kw">END_FUNCTION</span>`,
     'compute-definition': `<span class="kw" data-diagnostic-target="compute">FUNCTION</span> <span class="name" data-diagnostic-target="compute">compute</span> <span class="op">:</span> <span class="type">DINT</span>
+
 <span class="kw">END_FUNCTION</span>`
   };
 
   const CALCULATE_LINE_MARKUP = [
     '<span class="kw">FUNCTION</span> <span class="name">calculate</span> <span class="op">:</span> <span class="type">DINT</span>',
     '<span class="kw">VAR_INPUT</span>',
+    '',
     '    <span class="variable">t</span> <span class="op">:</span> <span class="type">INT</span><span class="op">;</span>',
     '<span class="kw">END_VAR</span>',
     '    <span class="result" data-diagnostic-target="result">result</span> <span class="op">:=</span> <span class="variable">t</span> <span class="math">*</span> <span class="num">5</span><span class="op">;</span>',
@@ -150,7 +155,7 @@ END_FUNCTION`;
       source: 'Анализатор',
       code: 'ST001',
       description: "Переменная 'result' не объявлена.",
-      location: 'calculate.st:5'
+      location: 'calculate.st:6'
     }
   ];
 
@@ -248,8 +253,7 @@ END_FUNCTION`;
     const lines = source
       .replace(/\r\n?/g, '\n')
       .split('\n')
-      .map(line => line.trim())
-      .filter(Boolean);
+      .map(line => line.trim());
     const requiredLines = [
       /^FUNCTION\s+calculate\s*:\s*DINT$/,
       /^VAR_INPUT$/,
@@ -260,9 +264,13 @@ END_FUNCTION`;
       /^END_FUNCTION$/
     ];
     let cursor = 0;
-    return requiredLines.every(pattern => {
-      const nextIndex = lines.findIndex((line, index) => index >= cursor && pattern.test(line));
+    return requiredLines.every((pattern, requiredIndex) => {
+      const nextIndex = lines.findIndex(
+        (line, index) => index >= cursor && line !== '' && pattern.test(line)
+      );
       if (nextIndex < 0) return false;
+      // сценарий резервирует пустую строку сразу после VAR_INPUT под result : INT;
+      if (pattern.source === '^VAR_INPUT$' && lines[nextIndex + 1] !== '') return false;
       cursor = nextIndex + 1;
       return true;
     });
@@ -276,17 +284,12 @@ END_FUNCTION`;
     );
   }
 
-  function insertResultDeclarationLine(source, declaration) {
-    return source.replace(
-      /(\bVAR_INPUT\b\n)/,
-      `$1  ${declaration}\n`
-    );
-  }
-
+  // Сценарий резервирует пустую строку сразу после VAR_INPUT.
+  // Объявление занимает именно её — документ остаётся восьмистрочным.
   function replaceResultDeclarationLine(source, declaration) {
     return source.replace(
       /(\bVAR_INPUT\b\n)[^\n]*\n/,
-      `$1  ${declaration}\n`
+      `$1    ${declaration}\n`
     );
   }
 
@@ -295,8 +298,13 @@ END_FUNCTION`;
     return match ? match[1] : '';
   }
 
+  function isCompileBusy() {
+    return scenarioState.compileStatus === 'pressed'
+      || scenarioState.compileStatus === 'running';
+  }
+
   function renderToolbar() {
-    const isBusy = scenarioState.compileStatus === 'pressed' || scenarioState.compileStatus === 'running';
+    const isBusy = isCompileBusy();
     root.dataset.scenarioStep = scenarioState.step;
     compileButton.dataset.state = scenarioState.toolbar.compile;
     compileButton.disabled = isBusy;
@@ -367,7 +375,7 @@ END_FUNCTION`;
     ) || (
       scenarioState.step === 'analyzer-message'
       && item.id === 'st001-result'
-      && item.location === 'calculate.st:5'
+      && item.location === 'calculate.st:6'
     );
     const location = document.createElement(locationIsInteractive ? 'button' : 'span');
     location.className = locationIsInteractive ? 'diagnostic-location-button' : 'diagnostic-location';
@@ -417,17 +425,17 @@ END_FUNCTION`;
     if (!location || !rows.contains(location)) return;
     if (scenarioState.step === 'analyzer-message') {
       if (location.dataset.diagnosticId !== 'st001-result') return;
-      if (location.dataset.diagnosticLocation !== 'calculate.st:5') return;
+      if (location.dataset.diagnosticLocation !== 'calculate.st:6') return;
 
       scenarioState.step = 'analyzer-location';
       scenarioState.tree.selectedId = 'compute-definition';
       scenarioState.editorTabs.activeId = 'compute-b';
       scenarioState.activeDocument = 'compute-definition';
-      scenarioState.editorContent.activeLine = 5;
-      scenarioState.editorContent.highlightedLines = [5];
+      scenarioState.editorContent.activeLine = 6;
+      scenarioState.editorContent.highlightedLines = [6];
       scenarioState.editorContent.revealLocation = {
         path: 'calculate.st',
-        line: 5,
+        line: 6,
         column: 5
       };
       scenarioState.selectedDiagnostic = 'st001-result';
@@ -546,7 +554,7 @@ END_FUNCTION`;
       operator,
       document.createTextNode(' '),
       type,
-      document.createTextNode('\n'),
+      document.createTextNode('\n\n'),
       endKeyword
     );
   }
@@ -569,16 +577,112 @@ END_FUNCTION`;
     sourceCode.removeAttribute('aria-label');
     sourceCode.removeAttribute('aria-multiline');
     sourceCode.removeAttribute('spellcheck');
+    sourceCode.removeAttribute('title');
+    sourceCode.removeAttribute('tabindex');
+  }
+
+  function renderHighlightedSource(source, interactive) {
+    if (source === CALCULATE_DEFINITION_SOURCE) {
+      sourceCode.innerHTML = CALCULATE_DEFINITION_MARKUP;
+    } else {
+      const tokenPattern = /\b(?:FUNCTION|VAR_INPUT|END_VAR|END_FUNCTION)\b|\b(?:DINT|INT)\b|:=|[:;*]|\b\d+\b|\b(?:calculate|compute|result|t)\b/g;
+      const keywordTokens = new Set(['FUNCTION', 'VAR_INPUT', 'END_VAR', 'END_FUNCTION']);
+      const typeTokens = new Set(['DINT', 'INT']);
+      const fragment = document.createDocumentFragment();
+      let sourceIndex = 0;
+
+      source.replace(tokenPattern, (token, tokenIndex) => {
+        fragment.append(document.createTextNode(source.slice(sourceIndex, tokenIndex)));
+        const tokenElement = document.createElement('span');
+        if (keywordTokens.has(token)) tokenElement.className = 'kw';
+        else if (typeTokens.has(token)) tokenElement.className = 'type';
+        else if (token === 'calculate' || token === 'compute') tokenElement.className = 'name';
+        else if (token === 'result') {
+          tokenElement.className = 'result';
+          tokenElement.dataset.diagnosticTarget = 'result';
+        } else if (token === 't') tokenElement.className = 'variable';
+        else if (/^\d+$/.test(token)) tokenElement.className = 'num';
+        else if (token === '*') tokenElement.className = 'math';
+        else tokenElement.className = 'op';
+        tokenElement.textContent = token;
+        fragment.append(tokenElement);
+        sourceIndex = tokenIndex + token.length;
+        return token;
+      });
+      fragment.append(document.createTextNode(source.slice(sourceIndex)));
+      sourceCode.replaceChildren(fragment);
+    }
+    if (!interactive) return;
+    sourceCode.setAttribute('role', 'button');
+    sourceCode.setAttribute('aria-label', 'Редактировать исходный код calculate');
+    sourceCode.setAttribute('title', 'Нажмите, чтобы ввести тело функции calculate');
+    sourceCode.setAttribute('tabindex', '0');
+  }
+
+  function readEditorSelection() {
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0) return null;
+    const range = selection.getRangeAt(0);
+    if (!sourceCode.contains(range.commonAncestorContainer)) return null;
+    const prefix = document.createRange();
+    prefix.selectNodeContents(sourceCode);
+    prefix.setEnd(range.startContainer, range.startOffset);
+    const start = prefix.toString().length;
+    return { start, end: start + range.toString().length };
+  }
+
+  function setEditorCaret(offset) {
+    const selection = window.getSelection();
+    if (!selection) return;
+    const range = document.createRange();
+    const textNode = sourceCode.firstChild;
+    if (textNode && textNode.nodeType === Node.TEXT_NODE) {
+      range.setStart(textNode, Math.max(0, Math.min(offset, textNode.length)));
+      range.collapse(true);
+    } else {
+      range.selectNodeContents(sourceCode);
+      range.collapse(false);
+    }
+    selection.removeAllRanges();
+    selection.addRange(range);
+  }
+
+  // Смещение начала первой пустой строки между заголовком FUNCTION и END_FUNCTION.
+  // Именно её сценарий резервирует под тело функции.
+  function findReservedBodyOffset(source) {
+    const lines = source.split('\n');
+    const endIndex = lines.findIndex(line => line.trim() === 'END_FUNCTION');
+    const limit = endIndex < 0 ? lines.length : endIndex;
+    let offset = 0;
+    for (let index = 0; index < limit; index += 1) {
+      if (index > 0 && lines[index].trim() === '') return offset;
+      offset += lines[index].length + 1;
+    }
+    return null;
   }
 
   function renderCalculateBodyEditor() {
     const editorDocument = scenarioState.editorContent.document;
-    if (editorDocument.source === CALCULATE_DEFINITION_SOURCE) {
-      sourceCode.innerHTML = CALCULATE_DEFINITION_MARKUP;
-    } else {
-      sourceCode.textContent = editorDocument.source;
-    }
+    sourceCode.textContent = editorDocument.source;
     setCalculateBodyEditorEnabled(true);
+    sourceCode.focus({ preventScroll: true });
+    const reservedOffset = findReservedBodyOffset(editorDocument.source);
+    setEditorCaret(reservedOffset === null ? editorDocument.source.length : reservedOffset);
+  }
+
+  function beginCalculateBodyEdit(event) {
+    if (!canEditCalculateBody()) return;
+    if (sourceCode.dataset.editorMode === 'calculate-body') return;
+    event.preventDefault();
+    window.setTimeout(() => {
+      if (!canEditCalculateBody()) return;
+      renderCalculateBodyEditor();
+    }, 0);
+  }
+
+  function handleCalculateBodyPreviewKeydown(event) {
+    if (event.key !== 'Enter' && event.key !== ' ') return;
+    beginCalculateBodyEdit(event);
   }
 
   function renderResultDeclarationEditor() {
@@ -602,11 +706,10 @@ END_FUNCTION`;
     const editorDocument = scenarioState.editorContent.document;
     setCalculateBodyEditorEnabled(false);
     const editsCalculateBody = editorDocument.id === 'compute-definition'
-      && scenarioState.step === 'fix-error'
       && scenarioState.editorContent.validation.computeRename.satisfied
       && !scenarioState.editorContent.validation.calculateBody.satisfied;
     if (editsCalculateBody) {
-      renderCalculateBodyEditor();
+      renderHighlightedSource(editorDocument.source, canEditCalculateBody());
     } else if (editorDocument.id === 'compute-definition'
       && scenarioState.step === 'fix-error'
       && !scenarioState.editorContent.validation.computeRename.satisfied) {
@@ -620,7 +723,8 @@ END_FUNCTION`;
         'result-declaration-fixed',
         'final-compile-pressed'
       ].includes(scenarioState.step);
-      const markup = scenarioState.step === 'analyzer-location'
+      const showsEditorLines = RESULT_DECLARATION_STEPS.includes(scenarioState.step);
+      const markup = showsEditorLines
         ? CALCULATE_NAVIGATION_MARKUP
         : showsFixedSource
           ? FIXED_CALCULATE_MARKUP
@@ -707,7 +811,10 @@ END_FUNCTION`;
     scenarioState.editorContent.validation.calculateBody.satisfied = false;
     sourceCode.dataset.calculateBodyValid = 'false';
     const renameSatisfied = scenarioState.editorContent.validation.computeRename.satisfied;
-    if (renameSatisfied) renderEditorContent();
+    if (renameSatisfied) {
+      renderEditorContent();
+      renderToolbar();
+    }
     renderDocumentName();
     renderDiagnosticSurfaces();
   }
@@ -723,9 +830,11 @@ END_FUNCTION`;
     sourceCode.dataset.calculateBodyValid = String(satisfied);
     if (!satisfied) return;
 
+    const compilerDiagnostics = scenarioState.diagnostics.items
+      .filter(item => !isAnalyzerDiagnosticId(item.id));
     scenarioState.diagnostics.items = [
       ...ANALYZER_DIAGNOSTICS.map(item => ({ ...item })),
-      ...FAILED_DIAGNOSTICS.map(item => ({ ...item }))
+      ...compilerDiagnostics
     ];
     scenarioState.counters = { ...ANALYZER_COUNTERS };
     scenarioState.selectedDiagnostic = null;
@@ -746,17 +855,27 @@ END_FUNCTION`;
     const pastedSource = event.clipboardData?.getData('text/plain');
     if (!pastedSource) return;
     event.preventDefault();
-    sourceCode.textContent = pastedSource;
-    applyCalculateBodySource(pastedSource);
+
+    const insertedSource = pastedSource.replace(/\r\n?/g, '\n');
+    const currentSource = sourceCode.textContent;
+    const selection = readEditorSelection();
+    const start = Math.max(0, Math.min(selection ? selection.start : currentSource.length, currentSource.length));
+    const end = Math.max(start, Math.min(selection ? selection.end : currentSource.length, currentSource.length));
+    const nextSource = currentSource.slice(0, start) + insertedSource + currentSource.slice(end);
+
+    sourceCode.textContent = nextSource;
+    setEditorCaret(start + insertedSource.length);
+    applyCalculateBodySource(nextSource);
   }
 
   function beginResultDeclarationEdit(initialValue = '') {
-    if (scenarioState.step !== 'analyzer-location') return;
-    if (scenarioState.activeDocument !== 'compute-definition') return;
+    if (!canDeclareResult()) return;
 
     const editorDocument = scenarioState.editorContent.document;
-    editorDocument.source = insertResultDeclarationLine(editorDocument.source, initialValue);
-    editorDocument.dirty = true;
+    if (initialValue) {
+      editorDocument.source = replaceResultDeclarationLine(editorDocument.source, initialValue);
+      editorDocument.dirty = true;
+    }
     scenarioState.step = 'result-declaration-editing';
     scenarioState.editorContent.activeLine = 3;
     scenarioState.editorContent.highlightedLines = [3];
@@ -769,16 +888,47 @@ END_FUNCTION`;
     renderToolbar();
     renderEditorContent();
     renderDiagnosticSurfaces();
+    focusResultDeclarationInput();
+  }
+
+  const RESULT_DECLARATION_STEPS = [
+    'recompile-complete-console',
+    'analyzer-message',
+    'analyzer-location'
+  ];
+
+  function canDeclareResult() {
+    return RESULT_DECLARATION_STEPS.includes(scenarioState.step)
+      && scenarioState.activeDocument === 'compute-definition'
+      && scenarioState.editorContent.validation.calculateBody.satisfied
+      && !scenarioState.editorContent.validation.resultDeclaration.satisfied;
+  }
+
+  function focusResultDeclarationInput() {
     const input = sourceCode.querySelector('.editable-result-declaration');
-    if (input) {
-      input.focus({ preventScroll: true });
-      input.setSelectionRange(input.value.length, input.value.length);
+    if (!input) return false;
+    input.focus({ preventScroll: true });
+    input.setSelectionRange(input.value.length, input.value.length);
+    return true;
+  }
+
+  // Зарезервированная строка 3 — единственное место объявления result.
+  // Клик по ней начинает ввод или возвращает фокус в уже открытый input,
+  // иначе фокус забирает сама строка и ввод молча теряется.
+  function handleResultDeclarationLineClick(event) {
+    const line = event.target.closest('[data-editor-line]');
+    if (!line || !sourceCode.contains(line)) return;
+    if (line.dataset.editorLine !== '3') return;
+    if (scenarioState.step === 'result-declaration-editing') {
+      focusResultDeclarationInput();
+      return;
     }
+    beginResultDeclarationEdit();
   }
 
   function handleResultDeclarationStart(event) {
     if (scenarioState.step !== 'analyzer-location') return;
-    const activeLine = event.target.closest('[data-editor-line="5"]');
+    const activeLine = event.target.closest('[data-editor-line="6"]');
     if (!activeLine || !sourceCode.contains(activeLine)) return;
     const printableCharacter = event.key.length === 1
       && !event.ctrlKey
@@ -820,22 +970,35 @@ END_FUNCTION`;
     renderResultDeclarationFixed();
   }
 
+  const CALCULATE_BODY_EDIT_STEPS = [
+    'fix-error',
+    'recompile-complete-console',
+    'analyzer-message'
+  ];
+
+  function canEditCalculateBody() {
+    return CALCULATE_BODY_EDIT_STEPS.includes(scenarioState.step)
+      && scenarioState.activeDocument === 'compute-definition'
+      && scenarioState.editorContent.validation.computeRename.satisfied
+      && !scenarioState.editorContent.validation.calculateBody.satisfied;
+  }
+
+  function isAnalyzerDiagnosticId(id) {
+    return ANALYZER_DIAGNOSTICS.some(item => item.id === id);
+  }
+
+  function hasDiagnostic(id) {
+    return scenarioState.diagnostics.items.some(item => item.id === id);
+  }
+
   function renderDiagnosticSurfaces() {
-    const compilationFailed = scenarioState.compileStatus === 'failed';
-    const computeConflictUnresolved = compilationFailed
-      && !scenarioState.documents['compute-definition'].validation.computeRename.satisfied;
+    const computeConflictUnresolved = hasDiagnostic('cmp101-root');
     const resultDeclarationResolved = [
       'result-declaration-fixed',
       'final-compile-pressed',
       'final-compiling'
     ].includes(scenarioState.step);
-    const showsAnalyzerResult = [
-      'recompiling',
-      'recompile-complete-console',
-      'analyzer-message',
-      'analyzer-location',
-      'result-declaration-editing'
-    ].includes(scenarioState.step)
+    const showsAnalyzerResult = hasDiagnostic('st001-result')
       || scenarioState.documents['compute-definition'].validation.calculateBody.satisfied;
     const limitsAnalyzerMarkerToCalculate = [
       'recompiling',
@@ -875,10 +1038,7 @@ END_FUNCTION`;
       'compiling',
       'final-compiling'
     ].includes(scenarioState.step));
-    contextFilterButton.classList.toggle(
-      'has-notification',
-      compilationFailed && !resultDeclarationResolved
-    );
+    contextFilterButton.classList.remove('has-notification');
   }
 
   function renderScenarioState() {
@@ -1033,15 +1193,20 @@ END_FUNCTION`;
 
   function enterRecompileCompleteConsole(sequence) {
     if (sequence !== compileSequence) return;
+    const analyzerFindings = validateCalculateBody(
+      scenarioState.documents['compute-definition'].document.source
+    ) ? ANALYZER_DIAGNOSTICS : [];
     scenarioState.step = 'recompile-complete-console';
     scenarioState.compileStatus = 'failed';
     scenarioState.toolbar.compile = 'default';
     scenarioState.bottomPanel.view = 'console';
     scenarioState.bottomPanel.title = 'Консоль';
-    scenarioState.diagnostics.items = ANALYZER_DIAGNOSTICS.map(item => ({ ...item }));
+    scenarioState.diagnostics.items = analyzerFindings.map(item => ({ ...item }));
     scenarioState.diagnostics.expandedIds = [];
     scenarioState.selectedDiagnostic = null;
-    scenarioState.counters = { ...ANALYZER_COUNTERS };
+    scenarioState.counters = analyzerFindings.length
+      ? { ...ANALYZER_COUNTERS }
+      : { error: 0, warning: 0, info: 0 };
     scenarioState.statusBar = { mode: 'idle', label: '', progress: 0 };
     compileTimers = [];
     renderScenarioState();
@@ -1052,7 +1217,6 @@ END_FUNCTION`;
     scenarioState.step = 'analyzer-message';
     scenarioState.bottomPanel.view = 'messages';
     scenarioState.bottomPanel.title = 'Сообщения';
-    scenarioState.counters = { ...ANALYZER_COUNTERS };
     renderScenarioState();
   }
 
@@ -1074,9 +1238,7 @@ END_FUNCTION`;
     scenarioState.editorContent.validation.computeRename.satisfied = computeRenameSatisfied;
     scenarioState.editorContent.validation.calculateBody.satisfied = calculateBodySatisfied;
     scenarioState.editorContent.validation.resultDeclaration.satisfied = resultDeclarationSatisfied;
-    return computeRenameSatisfied
-      && calculateBodySatisfied
-      && !resultDeclarationSatisfied;
+    return computeRenameSatisfied && !resultDeclarationSatisfied;
   }
 
   function revalidateFinalCompilationSource() {
@@ -1118,12 +1280,22 @@ END_FUNCTION`;
     renderFinalCompiling();
   }
 
+  function revealCalculateBodyStep() {
+    if (!canEditCalculateBody()) return;
+    if (sourceCode.dataset.editorMode === 'calculate-body') return;
+    if (sourceCode.getAttribute('role') !== 'button') return;
+    sourceCode.focus({ preventScroll: true });
+  }
+
   function startCompilation() {
-    if (scenarioState.compileStatus === 'pressed' || scenarioState.compileStatus === 'running') return;
+    if (isCompileBusy()) return;
     const startsRecompile = scenarioState.step === 'fix-error'
       && scenarioState.editorContent.document.dirty
       && revalidateRecompileSource();
-    if (scenarioState.step === 'fix-error' && !startsRecompile) return;
+    if (scenarioState.step === 'fix-error' && !startsRecompile) {
+      revealCalculateBodyStep();
+      return;
+    }
     if (scenarioState.step !== 'initial' && !startsRecompile) return;
     compileTimers.forEach(timer => window.clearTimeout(timer));
     compileTimers = [];
@@ -1136,8 +1308,11 @@ END_FUNCTION`;
   rows.addEventListener('click', handleDiagnosticDisclosureClick);
   rows.addEventListener('click', handleDiagnosticLocationClick);
   sourceCode.addEventListener('input', handleEditableIdentifierInput);
+  sourceCode.addEventListener('click', beginCalculateBodyEdit);
+  sourceCode.addEventListener('keydown', handleCalculateBodyPreviewKeydown);
   sourceCode.addEventListener('input', handleCalculateBodyInput);
   sourceCode.addEventListener('paste', handleCalculateBodyPaste);
+  sourceCode.addEventListener('click', handleResultDeclarationLineClick);
   sourceCode.addEventListener('keydown', handleResultDeclarationStart);
   sourceCode.addEventListener('input', handleResultDeclarationInput);
   setInitialVisualState();

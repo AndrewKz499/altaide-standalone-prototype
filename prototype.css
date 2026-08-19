@@ -102,6 +102,9 @@ body.is-resizing-horizontal, body.is-resizing-horizontal * { cursor: row-resize 
 .code-lines span { display: block; height: 20px; line-height: 20px; }
 .source-code { grid-column: 2; margin: 0; min-width: 700px; padding: 8px 18px; color: var(--gray-7); font: inherit; line-height: 20px; white-space: pre; tab-size: 2; }
 .source-code code.is-editable-source { display: block; min-height: 100%; outline: 0; caret-color: var(--gray-1); }
+.source-code code[role="button"] { display: block; cursor: pointer; border-radius: 3px; }
+.source-code code[role="button"]:hover { background: #2e3136; }
+.source-code code[role="button"]:focus { outline: 1px solid var(--accent); outline-offset: 2px; }
 .kw { color: #00a9de; } .name { color: #03a6c4; } .type { color: #e4c347; } .op { color: #df775e; } .num { color: #f3a1dd; }
 .variable { color: #7f73e9; }
 .result { color: #988df7; }
@@ -111,7 +114,8 @@ body.is-resizing-horizontal, body.is-resizing-horizontal * { cursor: row-resize 
 .source-code .source-line.is-active-line { background: #2e3136; }
 .editable-identifier { appearance: none; min-width: 1ch; height: 20px; margin: 0; padding: 0; border: 0; outline: 0; background: transparent; color: #03a6c4; caret-color: var(--gray-1); font: inherit; line-height: 20px; vertical-align: top; }
 .editable-identifier:focus { background: transparent; }
-.editable-result-declaration { appearance: none; min-width: 1ch; height: 20px; margin: 0; padding: 0; border: 0; outline: 0; background: transparent; color: #988df7; caret-color: var(--gray-1); font: inherit; line-height: 20px; vertical-align: top; }
+/* Слот объявления резервируется целиком: при 1ch пустой input некликабелен. */
+.editable-result-declaration { appearance: none; min-width: 13ch; height: 20px; margin: 0; padding: 0; border: 0; outline: 0; background: transparent; color: #988df7; caret-color: var(--gray-1); font: inherit; line-height: 20px; vertical-align: top; }
 .editable-result-declaration:focus { background: transparent; }
 
 .bottom-panel { min-width: 0; min-height: 0; display: grid; grid-template-columns: 44px minmax(0,1fr); overflow: hidden; background: var(--gray-14); }
