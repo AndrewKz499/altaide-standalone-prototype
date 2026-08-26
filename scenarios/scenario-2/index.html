@@ -10,7 +10,7 @@
   <link rel="stylesheet" href="scenarios/scenario-2/scenario.css?v=1">
 </head>
 <body>
-  <main class="ide" aria-label="AltaIDE, Scenario 2, стартовое состояние">
+  <main class="ide" aria-label="AltaIDE, Scenario 2">
     <header class="topbar" aria-label="Верхняя панель">
       <nav class="menubar" aria-label="Главное меню">
         <img class="alta-logo" src="assets/icons/brand-alta-logo.svg" alt="Alta">
@@ -30,7 +30,7 @@
           <span class="toolbar-divider" aria-hidden="true"></span>
           <button class="icon-button" type="button" aria-label="Добавить устройство"><img src="assets/icons/toolbar-add-device.svg" alt=""></button>
           <span class="toolbar-divider" aria-hidden="true"></span>
-          <button class="icon-button" type="button" aria-label="Компилировать" aria-disabled="true"><img src="assets/icons/toolbar-compile.svg" alt=""></button>
+          <button class="icon-button" type="button" aria-label="Компилировать" aria-pressed="false" data-action="compile" data-state="default"><img src="assets/icons/toolbar-compile.svg" alt=""></button>
           <span class="toolbar-divider" aria-hidden="true"></span>
           <button class="icon-button" type="button" aria-label="Подключиться"><img src="assets/icons/toolbar-connect.svg" alt=""></button>
           <button class="icon-button" type="button" aria-label="Загрузить в устройство"><img src="assets/icons/toolbar-load-to-device.svg" alt=""></button>
@@ -92,11 +92,11 @@
         <div class="content-split" id="content-split">
           <section class="code-canvas" aria-label="Редактор кода">
             <div class="code-lines" aria-hidden="true"></div>
-            <pre class="source-code"><code><span class="kw">FUNCTION</span> <span class="name">compute</span> <span class="op">:</span> <span class="type">DINT</span>
+            <pre class="source-code"><code><span class="kw">FUNCTION</span> <span class="name" data-compute-identifier>compute</span> <span class="op">:</span> <span class="type">DINT</span>
 <span class="kw">VAR_INPUT</span>
   <span class="name">t</span> <span class="op">:</span> <span class="type">INT</span><span class="op">;</span>
 <span class="kw">END_VAR</span>
-  <span class="name">compute</span> <span class="op">:=</span> <span class="name">t</span> <span class="op">*</span> <span class="num">2</span><span class="op">;</span>
+  <span class="name" data-compute-identifier>compute</span> <span class="op">:=</span> <span class="name">t</span> <span class="op">*</span> <span class="num">2</span><span class="op">;</span>
 <span class="kw">END_FUNCTION</span></code></pre>
           </section>
 
@@ -104,15 +104,16 @@
 
           <section class="bottom-panel" aria-label="Нижняя панель">
             <nav class="vertical-tabs" aria-label="Разделы нижней панели">
-              <button type="button" aria-label="Консоль" aria-disabled="true"><img src="assets/icons/panel-log.svg" alt=""></button>
-              <button class="is-active" type="button" aria-label="Сообщения"><img src="assets/icons/panel-messages.svg" alt=""></button>
-              <button type="button" aria-label="Переменные" aria-disabled="true"><img src="assets/icons/panel-variables.svg" alt=""></button>
+              <button type="button" aria-label="Консоль" aria-disabled="true" data-panel="console"><img src="assets/icons/panel-log.svg" alt=""></button>
+              <button class="is-active" type="button" aria-label="Сообщения" data-panel="messages"><img src="assets/icons/panel-messages.svg" alt=""></button>
+              <button type="button" aria-label="Переменные" aria-disabled="true" data-panel="variables"><img src="assets/icons/panel-variables.svg" alt=""></button>
             </nav>
             <div class="bottom-content">
-              <div class="bottom-tabs" role="tablist" aria-label="Вкладки сообщений">
+              <div class="bottom-tabs" role="tablist" aria-label="Вкладки сообщений" data-message-tabs>
                 <button class="is-active" type="button" role="tab" aria-selected="true" data-message-tab="compiler">Сообщения компилятора</button>
                 <button type="button" role="tab" aria-selected="false" data-message-tab="analyzer">Сообщения анализатора</button>
               </div>
+              <div class="bottom-tabs" aria-label="Консоль" data-console-tab hidden><span class="console-tab-label">Консоль</span></div>
               <div class="context-toolbar" role="toolbar" aria-label="Фильтры сообщений">
                 <div class="status-counters">
                   <button type="button" aria-label="Ошибки: 0"><img src="assets/icons/status-error.svg" alt=""><span>0</span></button>
@@ -121,7 +122,7 @@
                 </div>
                 <button class="context-more" type="button" aria-label="Дополнительные действия"><img src="assets/icons/context-more.svg" alt=""></button>
               </div>
-              <div class="table-scroll" tabindex="0" aria-label="Пустая таблица сообщений" data-active-message-table="compiler">
+              <div class="table-scroll" tabindex="0" aria-label="Пустая таблица сообщений" data-active-message-table="compiler" data-message-view>
                 <table class="messages-table">
                   <colgroup><col class="col-type"><col class="col-code"><col class="col-description"><col class="col-place"></colgroup>
                   <thead><tr><th>Тип</th><th class="sortable">Код<img src="assets/icons/table-sort.svg" alt=""></th><th>Описание</th><th class="sortable">Место<img src="assets/icons/table-sort.svg" alt=""></th></tr></thead>
@@ -134,13 +135,20 @@
                   </tbody>
                 </table>
               </div>
+              <pre class="console-output scenario-2-console" tabindex="0" aria-label="Консоль компиляции" data-console-view hidden></pre>
             </div>
           </section>
         </div>
       </section>
     </div>
 
-    <footer class="statusbar" aria-label="Строка состояния"></footer>
+    <footer class="statusbar" aria-label="Строка состояния">
+      <div class="statusbar-build" id="statusbar-build" hidden>
+        <span id="statusbar-label"></span>
+        <span class="statusbar-progress" aria-hidden="true"><span id="statusbar-progress-value"></span></span>
+        <span class="statusbar-close" aria-hidden="true"></span>
+      </div>
+    </footer>
   </main>
   <script src="scenarios/scenario-2/scenario.js?v=1"></script>
 </body>

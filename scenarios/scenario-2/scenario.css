@@ -2,10 +2,11 @@
   --bottom-panel-height: 228px;
 }
 
-.icon-button[aria-disabled="true"],
 .vertical-tabs button[aria-disabled="true"] {
   cursor: default;
 }
+
+.icon-button[aria-disabled="true"] { cursor: default; }
 
 .bottom-tabs button { padding-inline: 14px; }
 
@@ -22,6 +23,29 @@
 .messages-table .col-place { width: 365px; }
 .messages-table th:nth-child(2),
 .messages-table td:nth-child(2) { padding-inline: 14px; }
+
+[data-console-tab] {
+  align-items: flex-start;
+}
+
+[data-console-tab][hidden],
+[data-message-tabs][hidden] { display: none; }
+
+.console-tab-label {
+  height: 40px;
+  padding: 10px 14px 8px;
+  border-bottom: 2px solid var(--accent);
+  line-height: 20px;
+}
+
+.scenario-2-console {
+  width: 700px;
+  padding: 12px;
+  font-size: 12px;
+  line-height: 20px;
+}
+
+#statusbar-label { font-size: 14px; }
 
 @media (max-height: 650px) {
   :root { --bottom-panel-height: 190px; }
