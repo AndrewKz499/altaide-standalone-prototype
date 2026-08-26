@@ -7,7 +7,7 @@
   <title>AltaIDE — Scenario 2 · S01</title>
   <link rel="icon" href="data:,">
   <link rel="stylesheet" href="prototype.css?v=9">
-  <link rel="stylesheet" href="scenarios/scenario-2/scenario.css?v=1">
+  <link rel="stylesheet" href="scenarios/scenario-2/scenario.css?v=6">
 </head>
 <body>
   <main class="ide" aria-label="AltaIDE, Scenario 2">
@@ -116,9 +116,9 @@
               <div class="bottom-tabs" aria-label="Консоль" data-console-tab hidden><span class="console-tab-label">Консоль</span></div>
               <div class="context-toolbar" role="toolbar" aria-label="Фильтры сообщений">
                 <div class="status-counters">
-                  <button type="button" aria-label="Ошибки: 0"><img src="assets/icons/status-error.svg" alt=""><span>0</span></button>
-                  <button type="button" aria-label="Предупреждения: 0"><img src="assets/icons/status-warning.svg" alt=""><span>0</span></button>
-                  <button type="button" aria-label="Информация: 0"><img src="assets/icons/status-info.svg" alt=""><span>0</span></button>
+                  <button type="button" aria-label="Ошибки: 0" data-counter="error"><img src="assets/icons/status-error.svg" alt=""><span>0</span></button>
+                  <button type="button" aria-label="Предупреждения: 0" data-counter="warning"><img src="assets/icons/status-warning.svg" alt=""><span>0</span></button>
+                  <button type="button" aria-label="Информация: 0" data-counter="info"><img src="assets/icons/status-info.svg" alt=""><span>0</span></button>
                 </div>
                 <button class="context-more" type="button" aria-label="Дополнительные действия"><img src="assets/icons/context-more.svg" alt=""></button>
               </div>
@@ -126,7 +126,7 @@
                 <table class="messages-table">
                   <colgroup><col class="col-type"><col class="col-code"><col class="col-description"><col class="col-place"></colgroup>
                   <thead><tr><th>Тип</th><th class="sortable">Код<img src="assets/icons/table-sort.svg" alt=""></th><th>Описание</th><th class="sortable">Место<img src="assets/icons/table-sort.svg" alt=""></th></tr></thead>
-                  <tbody aria-hidden="true">
+                  <tbody aria-hidden="true" data-diagnostics-body>
                     <tr><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td></tr>
                     <tr><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td></tr>
                     <tr><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td></tr>
@@ -150,6 +150,6 @@
       </div>
     </footer>
   </main>
-  <script src="scenarios/scenario-2/scenario.js?v=1"></script>
+  <script src="scenarios/scenario-2/scenario.js?v=6"></script>
 </body>
 </html>
