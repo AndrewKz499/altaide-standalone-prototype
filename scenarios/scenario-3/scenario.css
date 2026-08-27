@@ -1,0 +1,57 @@
+:root {
+  --bottom-panel-height: 228px;
+}
+
+.icon-button[aria-disabled="true"],
+.vertical-tabs button[aria-disabled="true"] {
+  cursor: default;
+}
+
+.build-content {
+  grid-template-rows: 40px minmax(0, 1fr);
+}
+
+.build-tabs button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-inline: 14px;
+}
+
+.build-tabs button > img {
+  width: 20px;
+  height: 20px;
+  display: block;
+  object-fit: contain;
+}
+
+.build-empty {
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--gray-14);
+}
+
+.build-panel .vertical-tabs button {
+  cursor: default;
+}
+
+.build-panel .vertical-tabs button:not(.is-active):hover {
+  background: transparent;
+}
+
+.statusbar {
+  min-height: 32px;
+}
+
+@media (max-width: 1100px) {
+  .menubar {
+    gap: 10px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .menu-links button {
+    padding-inline: 12px;
+  }
+}
