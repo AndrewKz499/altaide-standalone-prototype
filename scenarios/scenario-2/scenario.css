@@ -151,6 +151,15 @@ html:is(
 
 .source-code .result { color: #988df7; }
 
+.source-code .source-line[data-editor-line="3"] .editable-result-declaration {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  padding-left: 4ch;
+  cursor: text;
+}
+
 .source-code code.is-editable-source {
   white-space: pre;
   overflow-wrap: normal;

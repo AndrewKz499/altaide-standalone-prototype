@@ -560,7 +560,6 @@ END_FUNCTION`
       line.dataset.editorLine = String(lineNumber);
       if (lineNumber === 3) {
         line.classList.add('is-active-line');
-        line.append(document.createTextNode('    '));
         const input = document.createElement('input');
         input.className = 'result editable-result-declaration';
         input.type = 'text';
@@ -570,7 +569,6 @@ END_FUNCTION`
         input.setAttribute('autocomplete', 'off');
         input.setAttribute('autocapitalize', 'off');
         input.setAttribute('spellcheck', 'false');
-        input.style.width = `${Math.max(13, input.value.length)}ch`;
         line.append(input);
       } else {
         appendHighlightedTokens(line, lineText);
@@ -825,9 +823,24 @@ END_FUNCTION`
     if (!input || !sourceCode.contains(input)) return false;
     if (scenario.state !== 'result-declaration-editing') return true;
     input.value = input.value.replace(/[\r\n]/g, '');
-    input.style.width = `${Math.max(13, input.value.length)}ch`;
     applyResultDeclarationDraft(input.value);
     return true;
+  }
+
+  function handleResultDeclarationPointerDown(event) {
+    if (event.button !== 0) return;
+    const line = event.target.closest('[data-editor-line="3"]');
+    if (!line || !sourceCode.contains(line)) return;
+    if (!['st001-location', 'result-declaration-editing'].includes(scenario.state)) return;
+
+    // Prevent the browser from placing a selection in the empty line before
+    // the declaration input is rendered and focused.
+    event.preventDefault();
+    if (scenario.state === 'result-declaration-editing') {
+      focusResultDeclarationInput();
+      return;
+    }
+    beginResultDeclarationEdit(event);
   }
 
   function handleResultDeclarationLineClick(event) {
@@ -1065,6 +1078,8 @@ END_FUNCTION`
   });
 
   sourceCode.addEventListener('paste', handleSourcePaste);
+
+  sourceCode.addEventListener('pointerdown', handleResultDeclarationPointerDown);
 
   sourceCode.addEventListener('click', event => {
     beginCalculateBodyEdit(event);
