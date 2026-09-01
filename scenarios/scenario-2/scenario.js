@@ -99,6 +99,14 @@ END_FUNCTION`
 END_FUNCTION`
     }
   };
+  const CALCULATE_BODY_SOURCE = `FUNCTION calculate : DINT
+VAR_INPUT
+
+    t : INT;
+END_VAR
+    result := t * 5;
+    calculate := result;
+END_FUNCTION`;
   const CALCULATE_BODY_PATTERNS = [
     /^FUNCTION\s+calculate\s*:\s*DINT$/,
     /^VAR_INPUT$/,
@@ -122,8 +130,6 @@ END_FUNCTION`
     renameValid: false,
     bodyValid: false,
     resultDeclarationValid: false,
-    resultDeclarationBaseSource: null,
-    resultDeclarationDraft: '',
     dirty: false,
     selectedDiagnostic: null,
     revealLocation: null
@@ -421,10 +427,6 @@ END_FUNCTION`
       .some(line => /^\s*result\s*:\s*INT\s*;\s*$/.test(line));
   }
 
-  function setIdentifierInputWidth(input) {
-    input.style.width = `${Math.max(1, input.value.length)}ch`;
-  }
-
   function canEditFunctionName() {
     return [
       'diagnostic-location',
@@ -456,27 +458,14 @@ END_FUNCTION`
     sourceCode.classList.remove('is-editable-source');
   }
 
-  function readSourceSelection() {
-    const selection = window.getSelection();
-    if (!selection || selection.rangeCount === 0) return null;
-    const range = selection.getRangeAt(0);
-    if (!sourceCode.contains(range.commonAncestorContainer)) return null;
-    const prefix = document.createRange();
-    prefix.selectNodeContents(sourceCode);
-    prefix.setEnd(range.startContainer, range.startOffset);
-    const start = prefix.toString().length;
-    return { start, end: start + range.toString().length };
-  }
-
-  function setSourceCaret(offset) {
-    const selection = window.getSelection();
-    const textNode = sourceCode.firstChild;
-    if (!selection || !textNode || textNode.nodeType !== Node.TEXT_NODE) return;
-    const range = document.createRange();
-    range.setStart(textNode, Math.max(0, Math.min(offset, textNode.length)));
-    range.collapse(true);
-    selection.removeAllRanges();
-    selection.addRange(range);
+  function createCodeActionTarget(action, label, ariaLabel, extraClass = '') {
+    const target = document.createElement('button');
+    target.className = `code-action-target ${extraClass}`.trim();
+    target.type = 'button';
+    target.dataset.codeAction = action;
+    target.textContent = label;
+    target.setAttribute('aria-label', ariaLabel);
+    return target;
   }
 
   function appendHighlightedTokens(target, source) {
@@ -518,6 +507,38 @@ END_FUNCTION`
     codeCanvas.scrollLeft = 0;
   }
 
+  function findReservedBodyOffset(source) {
+    const lines = source.split('\n');
+    const endIndex = lines.findIndex(line => line.trim() === 'END_FUNCTION');
+    const limit = endIndex < 0 ? lines.length : endIndex;
+    let offset = 0;
+    for (let index = 0; index < limit; index += 1) {
+      if (index > 0 && lines[index].trim() === '') return offset;
+      offset += lines[index].length + 1;
+    }
+    return null;
+  }
+
+  function renderCalculateBodyTarget(source) {
+    const insertionOffset = findReservedBodyOffset(source);
+    const fragment = document.createDocumentFragment();
+    if (insertionOffset === null) {
+      appendHighlightedTokens(fragment, source);
+    } else {
+      appendHighlightedTokens(fragment, source.slice(0, insertionOffset));
+      fragment.append(
+        document.createTextNode('  '),
+        createCodeActionTarget(
+          'insert-calculate-body',
+          'Вставьте код',
+          'Вставить тело функции calculate'
+        )
+      );
+      appendHighlightedTokens(fragment, source.slice(insertionOffset));
+    }
+    sourceCode.replaceChildren(fragment);
+  }
+
   function declarationVisualLines(source) {
     return source.replace(/\r\n?/g, '\n').split('\n');
   }
@@ -528,7 +549,9 @@ END_FUNCTION`
   }
 
   function renderDeclarationNavigationPreview(source) {
-    const activeLine = revealEditorLine();
+    const activeLine = scenario.state === 'st001-location'
+      ? revealEditorLine()
+      : null;
     const fragment = document.createDocumentFragment();
     declarationVisualLines(source).forEach((lineText, index) => {
       const lineNumber = index + 1;
@@ -536,92 +559,40 @@ END_FUNCTION`
       line.className = 'source-line';
       line.dataset.editorLine = String(lineNumber);
       if (lineNumber === 3) {
-        line.setAttribute('role', 'button');
-        line.setAttribute('tabindex', '0');
-        line.setAttribute('aria-label', 'Объявить переменную result в строке 3');
+        line.append(
+          document.createTextNode('    '),
+          createCodeActionTarget(
+            'declare-result',
+            'Объявите переменную',
+            'Объявить переменную result'
+          )
+        );
+      } else {
+        appendHighlightedTokens(line, lineText);
       }
       if (lineNumber === activeLine) {
         line.classList.add('is-active-line');
         line.setAttribute('tabindex', '-1');
       }
-      appendHighlightedTokens(line, lineText);
       fragment.append(line);
     });
     sourceCode.replaceChildren(fragment);
-  }
-
-  function renderResultDeclarationEditor() {
-    const source = scenario.resultDeclarationBaseSource || DOCUMENTS['compute-a'].source;
-    const fragment = document.createDocumentFragment();
-    declarationVisualLines(source).forEach((lineText, index) => {
-      const lineNumber = index + 1;
-      const line = document.createElement('span');
-      line.className = 'source-line';
-      line.dataset.editorLine = String(lineNumber);
-      if (lineNumber === 3) {
-        line.classList.add('is-active-line');
-        const input = document.createElement('input');
-        input.className = 'result editable-result-declaration';
-        input.type = 'text';
-        input.value = scenario.resultDeclarationDraft;
-        input.dataset.resultDeclarationInput = '';
-        input.setAttribute('aria-label', 'Объявление переменной result');
-        input.setAttribute('autocomplete', 'off');
-        input.setAttribute('autocapitalize', 'off');
-        input.setAttribute('spellcheck', 'false');
-        line.append(input);
-      } else {
-        appendHighlightedTokens(line, lineText);
-      }
-      fragment.append(line);
-    });
-    sourceCode.replaceChildren(fragment);
-  }
-
-  function setBodyEditAffordance() {
-    sourceCode.setAttribute('role', 'button');
-    sourceCode.setAttribute('tabindex', '0');
-    sourceCode.setAttribute('aria-label', 'Редактировать исходный код calculate');
-  }
-
-  function renderBodyEditor(mode, selectContents = false) {
-    const documentData = DOCUMENTS['compute-a'];
-    sourceCode.textContent = documentData.source;
-    sourceCode.contentEditable = 'plaintext-only';
-    sourceCode.dataset.editorMode = mode;
-    sourceCode.setAttribute('role', 'textbox');
-    sourceCode.setAttribute('tabindex', '0');
-    sourceCode.setAttribute('aria-label', 'Исходный код calculate');
-    sourceCode.setAttribute('aria-multiline', 'true');
-    sourceCode.setAttribute('spellcheck', 'false');
-    sourceCode.classList.add('is-editable-source');
-    sourceCode.dataset.source = documentData.source;
-    if (!selectContents) return;
-    sourceCode.focus({ preventScroll: true });
-    const selection = window.getSelection();
-    const range = document.createRange();
-    range.selectNodeContents(sourceCode);
-    selection.removeAllRanges();
-    selection.addRange(range);
   }
 
   function renderDefinitionDocument() {
     const documentData = DOCUMENTS['compute-a'];
-    if (scenario.state === 'calculate-body-editing') {
-      renderBodyEditor('calculate-body');
-      sourceCode.dataset.bodyValid = String(scenario.bodyValid);
-      sourceCode.dataset.resultDeclarationValid = String(scenario.resultDeclarationValid);
-      return;
-    }
-    if (scenario.state === 'result-declaration-editing') {
-      renderResultDeclarationEditor();
+    if (scenario.state === 'post-recompile-compiler-messages'
+      && scenario.renameValid
+      && !scenario.bodyValid) {
+      renderCalculateBodyTarget(documentData.source);
       sourceCode.dataset.source = documentData.source;
-      sourceCode.dataset.bodyValid = 'true';
+      sourceCode.dataset.renameValid = 'true';
+      sourceCode.dataset.bodyValid = 'false';
       sourceCode.dataset.resultDeclarationValid = 'false';
       return;
     }
     if (scenario.bodyValid) {
-      if (scenario.state === 'st001-location') {
+      if (['analyzer-messages-st001', 'st001-location'].includes(scenario.state)) {
         renderDeclarationNavigationPreview(documentData.source);
       } else {
         renderHighlightedCalculateBody(documentData.source);
@@ -636,21 +607,20 @@ END_FUNCTION`
     keyword.textContent = 'FUNCTION';
 
     const identifierName = getFunctionIdentifier(documentData.source);
-    const identifier = document.createElement(canEditFunctionName() ? 'input' : 'span');
-    identifier.className = canEditFunctionName() ? 'name editable-identifier' : 'name';
-    identifier.dataset.computeIdentifier = '';
-    if (identifier.matches('input')) {
-      identifier.type = 'text';
-      identifier.value = identifierName;
-      identifier.dataset.editableFunctionName = 'compute-a';
-      identifier.setAttribute('aria-label', 'Имя второй функции');
-      identifier.setAttribute('autocomplete', 'off');
-      identifier.setAttribute('autocapitalize', 'off');
-      identifier.setAttribute('spellcheck', 'false');
-      setIdentifierInputWidth(identifier);
-    } else {
+    const showsRenameTarget = canEditFunctionName() && !scenario.renameValid;
+    const identifier = showsRenameTarget
+      ? createCodeActionTarget(
+        'rename-function',
+        identifierName,
+        'Исправить имя функции compute на calculate',
+        'rename-code-action name'
+      )
+      : document.createElement('span');
+    if (!showsRenameTarget) {
+      identifier.className = 'name';
       identifier.textContent = identifierName;
     }
+    identifier.dataset.computeIdentifier = '';
 
     const operator = document.createElement('span');
     operator.className = 'op';
@@ -676,7 +646,6 @@ END_FUNCTION`
     sourceCode.dataset.source = documentData.source;
     sourceCode.dataset.renameValid = String(scenario.renameValid);
     sourceCode.dataset.bodyValid = 'false';
-    if (scenario.state === 'post-recompile-compiler-messages') setBodyEditAffordance();
   }
 
   function renderDocument(documentId) {
@@ -703,21 +672,8 @@ END_FUNCTION`
     refreshProblemMarkers();
   }
 
-  function beginCalculateBodyEdit(event) {
-    if (scenario.state !== 'post-recompile-compiler-messages') return;
-    if (scenario.activeDocument !== 'compute-a') return;
-    if (sourceCode.dataset.editorMode === 'calculate-body') return;
-    event?.preventDefault();
-    window.setTimeout(() => {
-      if (scenario.state !== 'post-recompile-compiler-messages') return;
-      if (scenario.activeDocument !== 'compute-a') return;
-      setState('calculate-body-editing');
-      renderBodyEditor('calculate-body', true);
-    }, 0);
-  }
-
   function applyCalculateBodySource(source) {
-    if (scenario.state !== 'calculate-body-editing') return;
+    if (scenario.state !== 'post-recompile-compiler-messages') return;
     if (scenario.activeDocument !== 'compute-a') return;
     const documentData = DOCUMENTS['compute-a'];
     documentData.source = source.replace(/\u00a0/g, ' ').replace(/\r\n?/g, '\n');
@@ -738,10 +694,6 @@ END_FUNCTION`
     refreshProblemMarkers();
   }
 
-  function updateCalculateBodyFromEditor() {
-    applyCalculateBodySource(sourceCode.innerText);
-  }
-
   function buildResultDeclarationSource(baseSource, declaration) {
     if (!declaration) return baseSource;
     const inputBlock = baseSource.match(/\bVAR_INPUT\b[\s\S]*?\bEND_VAR\b/);
@@ -758,45 +710,13 @@ END_FUNCTION`
     return baseSource.replace(inputBlock[0], lines.join('\n'));
   }
 
-  function focusResultDeclarationInput() {
-    const input = sourceCode.querySelector('[data-result-declaration-input]');
-    if (!input) return false;
-    input.focus({ preventScroll: true });
-    input.setSelectionRange(input.value.length, input.value.length);
-    return true;
-  }
-
-  function beginResultDeclarationEdit(event, initialValue = '') {
-    if (scenario.state !== 'st001-location') return;
-    if (scenario.activeDocument !== 'compute-a') return;
-    event?.preventDefault();
-    window.setTimeout(() => {
-      if (scenario.state !== 'st001-location') return;
-      if (scenario.activeDocument !== 'compute-a') return;
-      scenario.resultDeclarationBaseSource = DOCUMENTS['compute-a'].source;
-      scenario.resultDeclarationDraft = initialValue;
-      if (initialValue) {
-        DOCUMENTS['compute-a'].source = buildResultDeclarationSource(
-          scenario.resultDeclarationBaseSource,
-          initialValue
-        );
-        scenario.dirty = true;
-      }
-      setState('result-declaration-editing');
-      renderDefinitionDocument();
-      focusResultDeclarationInput();
-    }, 0);
-  }
-
-  function applyResultDeclarationDraft(declaration) {
-    if (scenario.state !== 'result-declaration-editing') return;
+  function applyResultDeclaration() {
+    if (!['analyzer-messages-st001', 'st001-location'].includes(scenario.state)) return;
     if (scenario.activeDocument !== 'compute-a') return;
     const documentData = DOCUMENTS['compute-a'];
-    const normalizedDeclaration = declaration.replace(/[\r\n]/g, '');
-    scenario.resultDeclarationDraft = normalizedDeclaration;
     documentData.source = buildResultDeclarationSource(
-      scenario.resultDeclarationBaseSource,
-      normalizedDeclaration
+      documentData.source,
+      'result : INT;'
     );
     scenario.dirty = true;
     scenario.resultDeclarationValid = validateResultDeclaration(documentData.source);
@@ -804,8 +724,6 @@ END_FUNCTION`
     sourceCode.dataset.resultDeclarationValid = String(scenario.resultDeclarationValid);
     if (!scenario.resultDeclarationValid) return;
 
-    scenario.resultDeclarationBaseSource = null;
-    scenario.resultDeclarationDraft = '';
     scenario.selectedDiagnostic = null;
     scenario.revealLocation = null;
     setState('result-declaration-fixed');
@@ -818,78 +736,35 @@ END_FUNCTION`
     refreshProblemMarkers();
   }
 
-  function updateResultDeclarationFromInput(event) {
-    const input = event.target.closest('[data-result-declaration-input]');
-    if (!input || !sourceCode.contains(input)) return false;
-    if (scenario.state !== 'result-declaration-editing') return true;
-    input.value = input.value.replace(/[\r\n]/g, '');
-    applyResultDeclarationDraft(input.value);
-    return true;
+  function applyFunctionRename() {
+    if (scenario.activeDocument !== 'compute-a') return;
+    if (!canEditFunctionName() || scenario.renameValid) return;
+
+    const documentData = DOCUMENTS['compute-a'];
+    documentData.source = replaceFunctionIdentifier(documentData.source, 'calculate');
+    scenario.renameValid = validateFunctionRename(documentData.source);
+    if (!scenario.renameValid) return;
+
+    documentData.name = 'calculate';
+    setState('name-conflict-fixed-source');
+    setCompileVisual('default', false);
+    syncDocumentName('compute-a');
+    renderDocument('compute-a');
+    setConflictMarkers(scenario.hasCmp101);
   }
 
-  function handleResultDeclarationPointerDown(event) {
-    if (event.button !== 0) return;
-    const line = event.target.closest('[data-editor-line="3"]');
-    if (!line || !sourceCode.contains(line)) return;
-    if (!['st001-location', 'result-declaration-editing'].includes(scenario.state)) return;
-
-    // Prevent the browser from placing a selection in the empty line before
-    // the declaration input is rendered and focused.
+  function handleCodeActionClick(event) {
+    const target = event.target.closest('[data-code-action]');
+    if (!target || !sourceCode.contains(target)) return;
     event.preventDefault();
-    if (scenario.state === 'result-declaration-editing') {
-      focusResultDeclarationInput();
-      return;
+
+    if (target.dataset.codeAction === 'rename-function') {
+      applyFunctionRename();
+    } else if (target.dataset.codeAction === 'insert-calculate-body') {
+      applyCalculateBodySource(CALCULATE_BODY_SOURCE);
+    } else if (target.dataset.codeAction === 'declare-result') {
+      applyResultDeclaration();
     }
-    beginResultDeclarationEdit(event);
-  }
-
-  function handleResultDeclarationLineClick(event) {
-    const line = event.target.closest('[data-editor-line="3"]');
-    if (!line || !sourceCode.contains(line)) return;
-    if (scenario.state === 'result-declaration-editing') {
-      focusResultDeclarationInput();
-      return;
-    }
-    beginResultDeclarationEdit(event);
-  }
-
-  function handleResultDeclarationStart(event) {
-    if (scenario.state !== 'st001-location') return;
-    const line = event.target.closest('[data-editor-line]');
-    if (!line || !sourceCode.contains(line)) return;
-    const printableCharacter = event.key.length === 1
-      && !event.ctrlKey
-      && !event.metaKey
-      && !event.altKey;
-    if (event.key !== 'Enter' && !printableCharacter) return;
-    event.preventDefault();
-    beginResultDeclarationEdit(event, printableCharacter ? event.key : '');
-  }
-
-  function handleSourcePaste(event) {
-    if (event.target !== sourceCode) return;
-    const mode = sourceCode.dataset.editorMode;
-    if (mode !== 'calculate-body') return;
-    const pastedSource = event.clipboardData?.getData('text/plain');
-    if (!pastedSource) return;
-    event.preventDefault();
-
-    const insertedSource = pastedSource.replace(/\r\n?/g, '\n');
-    const currentSource = sourceCode.textContent;
-    const selection = readSourceSelection();
-    const start = Math.max(0, Math.min(
-      selection ? selection.start : currentSource.length,
-      currentSource.length
-    ));
-    const end = Math.max(start, Math.min(
-      selection ? selection.end : currentSource.length,
-      currentSource.length
-    ));
-    const nextSource = currentSource.slice(0, start) + insertedSource + currentSource.slice(end);
-
-    sourceCode.textContent = nextSource;
-    setSourceCaret(start + insertedSource.length);
-    applyCalculateBodySource(nextSource);
   }
 
   function enterCompiling(sequence) {
@@ -1045,53 +920,7 @@ END_FUNCTION`
     });
   });
 
-  sourceCode.addEventListener('input', event => {
-    if (updateResultDeclarationFromInput(event)) return;
-    if (event.target === sourceCode && scenario.state === 'calculate-body-editing') {
-      updateCalculateBodyFromEditor();
-      return;
-    }
-    const input = event.target.closest('[data-editable-function-name]');
-    if (!input || !sourceCode.contains(input)) return;
-    if (scenario.activeDocument !== 'compute-a') return;
-    if (!canEditFunctionName()) return;
-
-    const nextIdentifier = input.value.replace(/[^A-Za-z0-9_]/g, '');
-    const documentData = DOCUMENTS['compute-a'];
-    documentData.source = replaceFunctionIdentifier(documentData.source, nextIdentifier);
-    input.value = getFunctionIdentifier(documentData.source);
-    setIdentifierInputWidth(input);
-    scenario.renameValid = validateFunctionRename(documentData.source);
-    sourceCode.dataset.source = documentData.source;
-    sourceCode.dataset.renameValid = String(scenario.renameValid);
-
-    if (scenario.renameValid) {
-      documentData.name = 'calculate';
-      setState('name-conflict-fixed-source');
-      setCompileVisual('default', false);
-      syncDocumentName('compute-a');
-    } else {
-      setState('name-conflict-editing');
-      setCompileVisual('default', true);
-    }
-    setConflictMarkers(scenario.hasCmp101);
-  });
-
-  sourceCode.addEventListener('paste', handleSourcePaste);
-
-  sourceCode.addEventListener('pointerdown', handleResultDeclarationPointerDown);
-
-  sourceCode.addEventListener('click', event => {
-    beginCalculateBodyEdit(event);
-    handleResultDeclarationLineClick(event);
-  });
-
-  sourceCode.addEventListener('keydown', event => {
-    handleResultDeclarationStart(event);
-    if (sourceCode.getAttribute('role') !== 'button') return;
-    if (!['Enter', ' '].includes(event.key)) return;
-    beginCalculateBodyEdit(event);
-  });
+  sourceCode.addEventListener('click', handleCodeActionClick);
 
   diagnosticBody.addEventListener('click', event => {
     const st001Location = event.target.closest('[data-st001-location]');
@@ -1132,13 +961,17 @@ END_FUNCTION`
 
   messageTabs.forEach(tab => {
     tab.addEventListener('click', event => {
-      if (tab.dataset.messageTab === 'analyzer'
+      const entersAnalyzerDeclaration = tab.dataset.messageTab === 'analyzer'
         && scenario.bodyValid
         && !scenario.resultDeclarationValid
-        && scenario.state === 'calculate-body-with-undeclared-result') {
+        && scenario.state === 'calculate-body-with-undeclared-result';
+      if (entersAnalyzerDeclaration) {
         setState('analyzer-messages-st001');
       }
       setActiveMessageTab(tab.dataset.messageTab);
+      if (entersAnalyzerDeclaration && scenario.activeDocument === 'compute-a') {
+        renderDocument('compute-a');
+      }
       if (event.detail > 0) tab.blur();
     });
   });

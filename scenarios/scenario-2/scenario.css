@@ -132,38 +132,25 @@ html:is(
 
 #statusbar-label { font-size: 14px; }
 
-.scenario-2-console .editable-identifier,
-.source-code .editable-identifier {
+.ide[aria-label="AltaIDE, Scenario 2"] .code-action-target {
   appearance: none;
-  min-width: 1ch;
   height: 20px;
   margin: 0;
-  padding: 0;
-  border: 0;
-  outline: 0;
+  padding: 0 8px;
+  border: 1px solid var(--gray-11);
+  border-radius: 3px;
   background: transparent;
-  color: #03a6c4;
-  caret-color: var(--gray-1);
   font: inherit;
-  line-height: 20px;
+  line-height: 18px;
+  cursor: pointer;
   vertical-align: top;
 }
 
+.ide[aria-label="AltaIDE, Scenario 2"] .rename-code-action { padding-inline: 2px; }
+.ide[aria-label="AltaIDE, Scenario 2"] .code-action-target:hover { background: rgba(255, 255, 255, .035); }
+.ide[aria-label="AltaIDE, Scenario 2"] .code-action-target:focus-visible { outline: 1px solid var(--focus); outline-offset: 1px; }
+
 .source-code .result { color: #988df7; }
-
-.source-code .source-line[data-editor-line="3"] .editable-result-declaration {
-  display: block;
-  box-sizing: border-box;
-  width: 100%;
-  min-width: 0;
-  padding-left: 4ch;
-  cursor: text;
-}
-
-.source-code code.is-editable-source {
-  white-space: pre;
-  overflow-wrap: normal;
-}
 
 @media (max-height: 650px) {
   :root { --bottom-panel-height: 190px; }
