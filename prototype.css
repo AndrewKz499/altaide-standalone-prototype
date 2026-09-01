@@ -105,6 +105,21 @@ body.is-resizing-horizontal, body.is-resizing-horizontal * { cursor: row-resize 
 .source-code code[role="button"] { display: block; cursor: pointer; border-radius: 3px; }
 .source-code code[role="button"]:hover { background: #2e3136; }
 .source-code code[role="button"]:focus { outline: 1px solid var(--accent); outline-offset: 2px; }
+.ide[aria-label="Прототип AltaIDE"] .calculate-body-insertion-target {
+  appearance: none;
+  height: 20px;
+  padding: 0 8px;
+  border: 1px solid var(--gray-11);
+  border-radius: 3px;
+  background: transparent;
+  color: var(--gray-9);
+  font: inherit;
+  line-height: 18px;
+  cursor: pointer;
+  vertical-align: top;
+}
+.ide[aria-label="Прототип AltaIDE"] .calculate-body-insertion-target:hover { background: rgba(255, 255, 255, .035); }
+.ide[aria-label="Прототип AltaIDE"] .calculate-body-insertion-target:focus-visible { outline: 1px solid var(--focus); outline-offset: 1px; }
 .kw { color: #00a9de; } .name { color: #03a6c4; } .type { color: #e4c347; } .op { color: #df775e; } .num { color: #f3a1dd; }
 .variable { color: #7f73e9; }
 .result { color: #988df7; }

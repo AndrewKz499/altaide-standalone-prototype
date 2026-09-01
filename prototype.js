@@ -581,42 +581,61 @@ END_FUNCTION`;
     sourceCode.removeAttribute('tabindex');
   }
 
+  function appendHighlightedSource(target, source) {
+    const tokenPattern = /\b(?:FUNCTION|VAR_INPUT|END_VAR|END_FUNCTION)\b|\b(?:DINT|INT)\b|:=|[:;*]|\b\d+\b|\b(?:calculate|compute|result|t)\b/g;
+    const keywordTokens = new Set(['FUNCTION', 'VAR_INPUT', 'END_VAR', 'END_FUNCTION']);
+    const typeTokens = new Set(['DINT', 'INT']);
+    let sourceIndex = 0;
+
+    source.replace(tokenPattern, (token, tokenIndex) => {
+      target.append(document.createTextNode(source.slice(sourceIndex, tokenIndex)));
+      const tokenElement = document.createElement('span');
+      if (keywordTokens.has(token)) tokenElement.className = 'kw';
+      else if (typeTokens.has(token)) tokenElement.className = 'type';
+      else if (token === 'calculate' || token === 'compute') tokenElement.className = 'name';
+      else if (token === 'result') {
+        tokenElement.className = 'result';
+        tokenElement.dataset.diagnosticTarget = 'result';
+      } else if (token === 't') tokenElement.className = 'variable';
+      else if (/^\d+$/.test(token)) tokenElement.className = 'num';
+      else if (token === '*') tokenElement.className = 'math';
+      else tokenElement.className = 'op';
+      tokenElement.textContent = token;
+      target.append(tokenElement);
+      sourceIndex = tokenIndex + token.length;
+      return token;
+    });
+    target.append(document.createTextNode(source.slice(sourceIndex)));
+  }
+
+  function createCalculateBodyInsertionTarget() {
+    const target = document.createElement('button');
+    target.className = 'calculate-body-insertion-target';
+    target.type = 'button';
+    target.dataset.action = 'insert-calculate-body';
+    target.textContent = 'Нажмите сюда и вставьте код';
+    target.setAttribute('aria-label', 'Вставить тело функции calculate');
+    return target;
+  }
+
   function renderHighlightedSource(source, interactive) {
-    if (source === CALCULATE_DEFINITION_SOURCE) {
+    if (source === CALCULATE_DEFINITION_SOURCE && !interactive) {
       sourceCode.innerHTML = CALCULATE_DEFINITION_MARKUP;
     } else {
-      const tokenPattern = /\b(?:FUNCTION|VAR_INPUT|END_VAR|END_FUNCTION)\b|\b(?:DINT|INT)\b|:=|[:;*]|\b\d+\b|\b(?:calculate|compute|result|t)\b/g;
-      const keywordTokens = new Set(['FUNCTION', 'VAR_INPUT', 'END_VAR', 'END_FUNCTION']);
-      const typeTokens = new Set(['DINT', 'INT']);
       const fragment = document.createDocumentFragment();
-      let sourceIndex = 0;
-
-      source.replace(tokenPattern, (token, tokenIndex) => {
-        fragment.append(document.createTextNode(source.slice(sourceIndex, tokenIndex)));
-        const tokenElement = document.createElement('span');
-        if (keywordTokens.has(token)) tokenElement.className = 'kw';
-        else if (typeTokens.has(token)) tokenElement.className = 'type';
-        else if (token === 'calculate' || token === 'compute') tokenElement.className = 'name';
-        else if (token === 'result') {
-          tokenElement.className = 'result';
-          tokenElement.dataset.diagnosticTarget = 'result';
-        } else if (token === 't') tokenElement.className = 'variable';
-        else if (/^\d+$/.test(token)) tokenElement.className = 'num';
-        else if (token === '*') tokenElement.className = 'math';
-        else tokenElement.className = 'op';
-        tokenElement.textContent = token;
-        fragment.append(tokenElement);
-        sourceIndex = tokenIndex + token.length;
-        return token;
-      });
-      fragment.append(document.createTextNode(source.slice(sourceIndex)));
+      const insertionOffset = interactive ? findReservedBodyOffset(source) : null;
+      if (insertionOffset === null) {
+        appendHighlightedSource(fragment, source);
+      } else {
+        appendHighlightedSource(fragment, source.slice(0, insertionOffset));
+        fragment.append(
+          document.createTextNode('  '),
+          createCalculateBodyInsertionTarget()
+        );
+        appendHighlightedSource(fragment, source.slice(insertionOffset));
+      }
       sourceCode.replaceChildren(fragment);
     }
-    if (!interactive) return;
-    sourceCode.setAttribute('role', 'button');
-    sourceCode.setAttribute('aria-label', 'Редактировать исходный код calculate');
-    sourceCode.setAttribute('title', 'Нажмите, чтобы ввести тело функции calculate');
-    sourceCode.setAttribute('tabindex', '0');
   }
 
   function readEditorSelection() {
@@ -671,6 +690,8 @@ END_FUNCTION`;
   }
 
   function beginCalculateBodyEdit(event) {
+    const insertionTarget = event.target.closest('[data-action="insert-calculate-body"]');
+    if (!insertionTarget || !sourceCode.contains(insertionTarget)) return;
     if (!canEditCalculateBody()) return;
     if (sourceCode.dataset.editorMode === 'calculate-body') return;
     event.preventDefault();
@@ -1283,8 +1304,9 @@ END_FUNCTION`;
   function revealCalculateBodyStep() {
     if (!canEditCalculateBody()) return;
     if (sourceCode.dataset.editorMode === 'calculate-body') return;
-    if (sourceCode.getAttribute('role') !== 'button') return;
-    sourceCode.focus({ preventScroll: true });
+    const insertionTarget = sourceCode.querySelector('[data-action="insert-calculate-body"]');
+    if (!insertionTarget) return;
+    insertionTarget.focus({ preventScroll: true });
   }
 
   function startCompilation() {
