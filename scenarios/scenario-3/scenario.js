@@ -586,6 +586,7 @@ END_FUNCTION`
     if (buildId === 'build-3') createThirdBuildSnapshot();
     else if (buildId === 'build-2') createSecondBuildSnapshot();
     else createFirstBuildSnapshot();
+    renderCompilerTreeMarkers();
     scenario.pendingBuildId = null;
     buildPanelButton.classList.add('has-notification');
     buildPanelButton.removeAttribute('aria-disabled');
@@ -762,11 +763,11 @@ END_FUNCTION`
   }
 
   function renderCompilerTreeMarkers() {
-    const firstBuild = scenario.builds.find(snapshot => snapshot.id === 'build-1');
-    const conflictDiagnostic = firstBuild?.diagnostics.find(
+    const latestBuild = scenario.builds.at(-1);
+    const conflictDiagnostic = latestBuild?.diagnostics.find(
       diagnostic => diagnostic.code === CMP101.code
     );
-    const showConflictMarkers = Boolean(conflictDiagnostic && !scenario.renameValid);
+    const showConflictMarkers = Boolean(conflictDiagnostic);
 
     treeDocuments.forEach(row => {
       const hasDiagnostic = showConflictMarkers
