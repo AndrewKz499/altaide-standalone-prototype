@@ -18,10 +18,10 @@
 4. Location click → corresponding live document opens; Content Tab and Tree selection sync; conflict is revealed without changing source or Build #1.
 5. Location → click `compute` → live name becomes `calculate`; Build #1 remains unchanged.
 6. Rename → Compile → Console/progress → immutable Build #2 (`23.06.2026 15:55`) without name-conflict diagnostics; Build #1 remains selectable and unchanged.
+7. Build #2 → live `calculate` document → click `Вставьте код` → canonical body appears; live Analyzer reports ST001 while Build #1 and Build #2 remain unchanged.
 
 ## Remaining flow
 
-7. Click `Вставьте код` → calculate body appears → Analyzer reports ST001.
 8. Click `Объявите переменную` → result declaration appears → Analyzer clears; Build history remains unchanged.
 9. Final Compile → successful Build #3.
 10. Verify build-history selection, counters, timestamps, diagnostics, and immutable previews.

@@ -68,6 +68,18 @@
   outline-offset: 1px;
 }
 
+.ide[aria-label="AltaIDE, Scenario 3"] .body-code-action {
+  min-width: 112px;
+  padding-inline: 8px;
+  color: var(--gray-6);
+  text-align: left;
+}
+
+.ide[aria-label="AltaIDE, Scenario 3"] .live-analyzer-problem {
+  text-decoration: underline wavy #ef5475;
+  text-underline-offset: 3px;
+}
+
 #statusbar-label {
   font-size: 14px;
 }
@@ -121,6 +133,15 @@
   grid-template-columns: minmax(0, 707px) 16px minmax(0, 1fr);
   overflow: hidden;
   background: var(--gray-14);
+}
+
+.build-result[data-result-view="analyzer"] .build-result-body {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.build-result[data-result-view="analyzer"] .build-preview-resizer,
+.build-result[data-result-view="analyzer"] .build-preview {
+  display: none;
 }
 
 .build-diagnostics,
@@ -234,6 +255,14 @@
 .build-diagnostic-location:focus-visible {
   text-decoration: underline;
   outline: 0;
+}
+
+.analyzer-diagnostic-location {
+  min-width: 0;
+  overflow: hidden;
+  color: #5684dd;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .build-preview-resizer {

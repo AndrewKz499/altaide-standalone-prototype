@@ -12,6 +12,7 @@
   const treeDocuments = [...document.querySelectorAll('[data-tree-document]')];
   const compileButton = document.querySelector('[data-action="compile"]');
   const consolePanelButton = document.querySelector('[data-panel="console"]');
+  const analyzerPanelButton = document.querySelector('[data-panel="analyzer"]');
   const buildPanelButton = document.querySelector('[data-panel="build"]');
   const panelTabs = document.querySelector('[data-panel-tabs]');
   const buildEmpty = document.querySelector('[data-build-empty]');
@@ -32,6 +33,20 @@
   const RUNNING_DELAY_MS = 3200;
   const BUILD_1_TIMESTAMP = '23.06.2026 15:43';
   const BUILD_2_TIMESTAMP = '23.06.2026 15:55';
+  const CALCULATE_BODY_SOURCE = `FUNCTION calculate : DINT
+VAR_INPUT
+
+    t : INT;
+END_VAR
+    result := t * 5;
+    calculate := result;
+END_FUNCTION`;
+  const ST001 = Object.freeze({
+    code: 'ST001',
+    description: "Переменная 'result' не объявлена.",
+    locations: Object.freeze(['calculate.st:6', 'calculate.st:7']),
+    documentId: 'compute-a'
+  });
   const CMP101 = Object.freeze({
     code: 'CMP101',
     description: "Функция 'compute' определена несколько раз. Функция до...",
@@ -101,7 +116,11 @@ END_FUNCTION`
     selectedBuildDiagnosticLocation: null,
     revealedDiagnosticLocation: null,
     activeDocumentId: activeDocument,
-    renameValid: false
+    renameValid: false,
+    bodyValid: false,
+    dirty: false,
+    resultDeclarationValid: false,
+    liveAnalyzerDiagnostics: []
   };
 
   function setState(state) {
@@ -134,6 +153,8 @@ END_FUNCTION`
     consolePanelButton.classList.add('is-active');
     consolePanelButton.removeAttribute('aria-disabled');
     consolePanelButton.setAttribute('aria-current', 'page');
+    analyzerPanelButton.classList.remove('is-active');
+    analyzerPanelButton.removeAttribute('aria-current');
     buildPanelButton.classList.remove('is-active');
     buildPanelButton.removeAttribute('aria-current');
     buildEmpty.hidden = true;
@@ -396,8 +417,13 @@ END_FUNCTION`
     renderBuildTabs(snapshot);
     renderBuildCounters(snapshot);
     renderBuildDiagnostics(snapshot);
+    buildResult.dataset.resultView = 'build';
+    buildResult.setAttribute('aria-label', 'Результат сборки');
+    buildDiagnostics.setAttribute('aria-label', 'Сообщения компилятора');
     consolePanelButton.classList.remove('is-active');
     consolePanelButton.removeAttribute('aria-current');
+    analyzerPanelButton.classList.remove('is-active');
+    analyzerPanelButton.removeAttribute('aria-current');
     buildPanelButton.classList.add('is-active');
     buildPanelButton.setAttribute('aria-current', 'page');
     buildEmpty.hidden = true;
@@ -405,6 +431,74 @@ END_FUNCTION`
     buildResult.hidden = false;
     root.dataset.activeBuildId = snapshot.id;
     setBottomHeight(412);
+  }
+
+  function renderAnalyzerDiagnostic() {
+    const row = document.createElement('div');
+    row.className = 'build-diagnostic-row is-selected analyzer-diagnostic-row';
+    row.dataset.diagnosticCode = ST001.code;
+
+    const leading = document.createElement('div');
+    leading.className = 'build-diagnostic-leading';
+    const spacer = document.createElement('span');
+    spacer.className = 'build-diagnostic-spacer';
+    const errorIcon = document.createElement('img');
+    errorIcon.src = 'assets/icons/status-error.svg';
+    errorIcon.alt = '';
+    leading.append(spacer, errorIcon);
+
+    const code = document.createElement('span');
+    code.className = 'build-diagnostic-code';
+    code.textContent = ST001.code;
+    const description = document.createElement('span');
+    description.className = 'build-diagnostic-description';
+    description.textContent = ST001.description;
+    const locations = document.createElement('span');
+    locations.className = 'analyzer-diagnostic-location';
+    locations.textContent = ST001.locations.join(' · ');
+    row.append(leading, code, description, locations);
+    return row;
+  }
+
+  function showAnalyzer() {
+    if (!scenario.bodyValid || scenario.resultDeclarationValid) return;
+
+    const tab = document.createElement('button');
+    tab.className = 'is-active';
+    tab.type = 'button';
+    tab.setAttribute('role', 'tab');
+    tab.setAttribute('aria-selected', 'true');
+    const icon = document.createElement('img');
+    icon.src = 'assets/icons/panel-messages.svg';
+    icon.alt = '';
+    const label = document.createElement('span');
+    label.textContent = 'Сообщения анализатора';
+    tab.append(icon, label);
+    panelTabs.replaceChildren(tab);
+
+    scenario.view = 'analyzer';
+    setState('analyzer-messages-st001');
+    consolePanelButton.classList.remove('is-active');
+    consolePanelButton.removeAttribute('aria-current');
+    buildPanelButton.classList.remove('is-active');
+    buildPanelButton.removeAttribute('aria-current');
+    analyzerPanelButton.classList.add('is-active');
+    analyzerPanelButton.removeAttribute('aria-disabled');
+    analyzerPanelButton.setAttribute('aria-current', 'page');
+    analyzerPanelButton.classList.remove('has-notification');
+
+    renderBuildCounters({ counters: { error: 1, warning: 0, info: 0 } });
+    buildDiagnostics.replaceChildren(renderAnalyzerDiagnostic());
+    buildDiagnostics.setAttribute('aria-label', 'Сообщения анализатора: одна ошибка ST001');
+    buildPreview.replaceChildren();
+    buildPreview.classList.remove('has-content');
+    buildPreview.setAttribute('aria-label', 'Предпросмотр кода пуст');
+    buildResult.dataset.resultView = 'analyzer';
+    buildResult.setAttribute('aria-label', 'Сообщения анализатора');
+    buildEmpty.hidden = true;
+    consoleView.hidden = true;
+    buildResult.hidden = false;
+    setBottomHeight(228);
   }
 
   function getActiveBuildSnapshot() {
@@ -482,7 +576,7 @@ END_FUNCTION`
 
   function highlightSource(source, options = {}) {
     let conflictRevealed = false;
-    const tokenPattern = /\b(FUNCTION|VAR_INPUT|END_VAR|END_FUNCTION)\b|\b(DINT|INT)\b|\b(compute|calculate|t)\b|(:=|:|;|\*)|\b(\d+)\b/g;
+    const tokenPattern = /\b(FUNCTION|VAR_INPUT|END_VAR|END_FUNCTION)\b|\b(DINT|INT)\b|\b(compute|calculate|result|t)\b|(:=|:|;|\*)|\b(\d+)\b/g;
     return escapeHtml(source).replace(tokenPattern, (token, keyword, type, name, operator, number) => {
       if (keyword) return `<span class="kw">${token}</span>`;
       if (type) return `<span class="type">${token}</span>`;
@@ -497,12 +591,76 @@ END_FUNCTION`
         if (isRenameTarget) {
           return `<button class="code-action-target rename-code-action name" type="button" data-code-action="rename-function" aria-label="Исправить имя функции compute на calculate">${token}</button>`;
         }
+        if (options.markUndeclaredResult && token === 'result') {
+          return `<span class="name live-analyzer-problem" data-analyzer-problem="${ST001.code}">${token}</span>`;
+        }
         return `<span class="name${isRevealedConflict ? ' has-diagnostic' : ''}"${isRevealedConflict ? ` data-revealed-location="${options.locationId}"` : ''}>${token}</span>`;
       }
       if (operator) return `<span class="op">${token}</span>`;
       if (number) return `<span class="num">${token}</span>`;
       return token;
     });
+  }
+
+  function createCodeActionTarget(action, label, ariaLabel) {
+    const target = document.createElement('button');
+    target.className = 'code-action-target body-code-action';
+    target.type = 'button';
+    target.dataset.codeAction = action;
+    target.setAttribute('aria-label', ariaLabel);
+    target.textContent = label;
+    return target;
+  }
+
+  function appendHighlightedSource(target, source, options = {}) {
+    const template = document.createElement('template');
+    template.innerHTML = highlightSource(source, options);
+    target.append(template.content);
+  }
+
+  function findReservedBodyOffset(source) {
+    const lines = source.split('\n');
+    const endIndex = lines.findIndex(line => line.trim() === 'END_FUNCTION');
+    const limit = endIndex < 0 ? lines.length : endIndex;
+    let offset = 0;
+    for (let index = 0; index < limit; index += 1) {
+      if (index > 0 && lines[index].trim() === '') return offset;
+      offset += lines[index].length + 1;
+    }
+    return null;
+  }
+
+  function renderCalculateBodyTarget(source) {
+    const insertionOffset = findReservedBodyOffset(source);
+    if (insertionOffset === null) {
+      sourceCode.innerHTML = highlightSource(source);
+      return;
+    }
+
+    const fragment = document.createDocumentFragment();
+    appendHighlightedSource(fragment, source.slice(0, insertionOffset));
+    fragment.append(
+      document.createTextNode('  '),
+      createCodeActionTarget(
+        'insert-calculate-body',
+        'Вставьте код',
+        'Вставить тело функции calculate'
+      )
+    );
+    appendHighlightedSource(fragment, source.slice(insertionOffset));
+    sourceCode.replaceChildren(fragment);
+  }
+
+  function validateCalculateBody(source) {
+    return source.replace(/\r\n?/g, '\n') === CALCULATE_BODY_SOURCE;
+  }
+
+  function canShowCalculateBodyTarget(documentId) {
+    return documentId === 'compute-a'
+      && scenario.renameValid
+      && !scenario.bodyValid
+      && scenario.state === 'compiler-messages-build-2'
+      && scenario.activeBuildId === 'build-2';
   }
 
   function getBuildLocation(locationId) {
@@ -525,11 +683,18 @@ END_FUNCTION`
       && documentId === 'compute-a'
       && !scenario.renameValid;
     sourceCode.dataset.source = sourceDocument.source;
-    sourceCode.innerHTML = highlightSource(sourceDocument.source, {
-      revealConflict,
-      renameTarget,
-      locationId: revealedLocation?.id
-    });
+    if (canShowCalculateBodyTarget(documentId)) {
+      renderCalculateBodyTarget(sourceDocument.source);
+    } else {
+      sourceCode.innerHTML = highlightSource(sourceDocument.source, {
+        revealConflict,
+        renameTarget,
+        locationId: revealedLocation?.id,
+        markUndeclaredResult: documentId === 'compute-a'
+          && scenario.bodyValid
+          && !scenario.resultDeclarationValid
+      });
+    }
 
     editorTabs.forEach(tab => {
       const isActive = tab.dataset.editorTab === documentId;
@@ -554,11 +719,34 @@ END_FUNCTION`
     root.dataset.activeDocumentId = documentId;
     root.dataset.revealedDiagnosticLocation = scenario.revealedDiagnosticLocation || '';
     root.dataset.renameValid = String(scenario.renameValid);
+    root.dataset.bodyValid = String(scenario.bodyValid);
+    root.dataset.liveAnalyzerProblems = String(scenario.liveAnalyzerDiagnostics.length);
     if (revealConflict) {
       const codeCanvas = sourceCode.closest('.code-canvas');
       codeCanvas.scrollTop = 0;
       codeCanvas.scrollLeft = 0;
     }
+  }
+
+  function applyCalculateBody() {
+    if (!canShowCalculateBodyTarget(activeDocument) || scenario.bodyValid) return;
+
+    const documentData = sourceDocuments['compute-a'];
+    documentData.source = CALCULATE_BODY_SOURCE;
+    scenario.bodyValid = validateCalculateBody(documentData.source);
+    if (!scenario.bodyValid) return;
+
+    scenario.dirty = true;
+    scenario.liveAnalyzerDiagnostics = [ST001];
+    setState('calculate-body-with-undeclared-result');
+    analyzerPanelButton.removeAttribute('aria-disabled');
+    analyzerPanelButton.classList.add('has-notification');
+    renderDocument('compute-a');
+  }
+
+  function isBuildHistoryState() {
+    return scenario.state.startsWith('compiler-messages-build-')
+      || ['calculate-body-with-undeclared-result', 'analyzer-messages-st001'].includes(scenario.state);
   }
 
   function navigateToBuildLocation(locationId) {
@@ -696,23 +884,31 @@ END_FUNCTION`
       'compile-complete',
       'compiler-messages-build-1',
       'compile-complete-build-2',
-      'compiler-messages-build-2'
+      'compiler-messages-build-2',
+      'calculate-body-with-undeclared-result',
+      'analyzer-messages-st001'
     ].includes(scenario.state)) return;
     showConsole(RUNNING_CONSOLE_LINES);
   });
+
+  analyzerPanelButton.addEventListener('click', showAnalyzer);
 
   buildPanelButton.addEventListener('click', () => {
     if (![
       'compile-complete',
       'compiler-messages-build-1',
       'compile-complete-build-2',
-      'compiler-messages-build-2'
+      'compiler-messages-build-2',
+      'calculate-body-with-undeclared-result',
+      'analyzer-messages-st001'
     ].includes(scenario.state)) return;
     const snapshot = scenario.builds.at(-1);
     if (!snapshot) return;
-    setState(snapshot.id === 'build-2'
-      ? 'compiler-messages-build-2'
-      : 'compiler-messages-build-1');
+    if (!scenario.bodyValid) {
+      setState(snapshot.id === 'build-2'
+        ? 'compiler-messages-build-2'
+        : 'compiler-messages-build-1');
+    }
     showBuild(snapshot);
   });
 
@@ -720,7 +916,7 @@ END_FUNCTION`
     const tab = event.target.closest('[data-build-id]');
     if (!tab || !panelTabs.contains(tab)) return;
     const snapshot = scenario.builds.find(build => build.id === tab.dataset.buildId);
-    if (!snapshot || !scenario.state.startsWith('compiler-messages-build-')) return;
+    if (!snapshot || !isBuildHistoryState()) return;
     showBuild(snapshot);
   });
 
@@ -732,7 +928,7 @@ END_FUNCTION`
     }
 
     const toggle = event.target.closest('[data-diagnostic-toggle], [data-diagnostic-disclosure]');
-    if (!toggle || !scenario.state.startsWith('compiler-messages-build-')) return;
+    if (!toggle || !isBuildHistoryState() || scenario.view !== 'build') return;
     const diagnosticCode = toggle.dataset.diagnosticToggle || toggle.dataset.diagnosticDisclosure;
     const snapshot = getActiveBuildSnapshot();
     const diagnostic = snapshot?.diagnostics.find(item => item.code === diagnosticCode);
@@ -749,6 +945,7 @@ END_FUNCTION`
     if (!target || !sourceCode.contains(target)) return;
     event.preventDefault();
     if (target.dataset.codeAction === 'rename-function') applyFunctionRename();
+    else if (target.dataset.codeAction === 'insert-calculate-body') applyCalculateBody();
   });
 
   verticalResizer.addEventListener('pointerdown', event => beginDrag(event, 'vertical'));
