@@ -451,6 +451,7 @@ END_FUNCTION`
     buildResult.hidden = false;
     root.dataset.activeBuildId = snapshot.id;
     root.dataset.activeBuildSnapshotSource = snapshot.sourceSnapshot['compute-a'] || '';
+    renderCompilerTreeMarkers();
     setBottomHeight(412);
   }
 
@@ -760,6 +761,22 @@ END_FUNCTION`
       .find(location => location.id === locationId) || null;
   }
 
+  function renderCompilerTreeMarkers() {
+    const firstBuild = scenario.builds.find(snapshot => snapshot.id === 'build-1');
+    const conflictDiagnostic = firstBuild?.diagnostics.find(
+      diagnostic => diagnostic.code === CMP101.code
+    );
+    const showConflictMarkers = Boolean(conflictDiagnostic && !scenario.renameValid);
+
+    treeDocuments.forEach(row => {
+      const hasDiagnostic = showConflictMarkers
+        && conflictDiagnostic.locations.some(
+          location => location.documentId === row.dataset.treeDocument
+        );
+      row.classList.toggle('has-diagnostic', hasDiagnostic);
+    });
+  }
+
   function renderDocument(documentId) {
     const sourceDocument = sourceDocuments[documentId];
     if (!sourceDocument) return;
@@ -795,17 +812,11 @@ END_FUNCTION`
 
     treeDocuments.forEach(row => {
       const isSelected = row.dataset.treeDocument === documentId;
-      const hasDiagnostic = Boolean(
-        scenario.revealedDiagnosticLocation
-        && scenario.builds[0]?.diagnostics.some(diagnostic => (
-          diagnostic.locations.some(location => location.documentId === row.dataset.treeDocument)
-        ))
-      );
       row.classList.toggle('is-selected', isSelected);
-      row.classList.toggle('has-diagnostic', hasDiagnostic);
       if (isSelected) row.setAttribute('aria-selected', 'true');
       else row.removeAttribute('aria-selected');
     });
+    renderCompilerTreeMarkers();
 
     root.dataset.activeDocumentId = documentId;
     root.dataset.revealedDiagnosticLocation = scenario.revealedDiagnosticLocation || '';
