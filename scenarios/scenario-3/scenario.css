@@ -45,6 +45,29 @@
   line-height: 20px;
 }
 
+.ide[aria-label="AltaIDE, Scenario 3"] .code-action-target {
+  appearance: none;
+  height: 20px;
+  margin: 0;
+  padding: 0 2px;
+  border: 1px solid var(--gray-11);
+  border-radius: 3px;
+  background: transparent;
+  font: inherit;
+  line-height: 18px;
+  cursor: pointer;
+  vertical-align: top;
+}
+
+.ide[aria-label="AltaIDE, Scenario 3"] .code-action-target:hover {
+  background: rgba(255, 255, 255, .035);
+}
+
+.ide[aria-label="AltaIDE, Scenario 3"] .code-action-target:focus-visible {
+  outline: 1px solid var(--focus);
+  outline-offset: 1px;
+}
+
 #statusbar-label {
   font-size: 14px;
 }

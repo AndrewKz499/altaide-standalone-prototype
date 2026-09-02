@@ -69,11 +69,13 @@
 
   const sourceDocuments = {
     'compute-a': {
+      name: 'compute',
       source: `FUNCTION compute : DINT
 
 END_FUNCTION`
     },
     'compute-b': {
+      name: 'compute',
       source: `FUNCTION compute : DINT
 VAR_INPUT
   t : INT;
@@ -95,7 +97,8 @@ END_FUNCTION`
     expandedDiagnosticId: null,
     selectedBuildDiagnosticLocation: null,
     revealedDiagnosticLocation: null,
-    activeDocumentId: activeDocument
+    activeDocumentId: activeDocument,
+    renameValid: false
   };
 
   function setState(state) {
@@ -421,15 +424,21 @@ END_FUNCTION`
 
   function highlightSource(source, options = {}) {
     let conflictRevealed = false;
-    const tokenPattern = /\b(FUNCTION|VAR_INPUT|END_VAR|END_FUNCTION)\b|\b(DINT|INT)\b|\b(compute|t)\b|(:=|:|;|\*)|\b(\d+)\b/g;
+    const tokenPattern = /\b(FUNCTION|VAR_INPUT|END_VAR|END_FUNCTION)\b|\b(DINT|INT)\b|\b(compute|calculate|t)\b|(:=|:|;|\*)|\b(\d+)\b/g;
     return escapeHtml(source).replace(tokenPattern, (token, keyword, type, name, operator, number) => {
       if (keyword) return `<span class="kw">${token}</span>`;
       if (type) return `<span class="type">${token}</span>`;
       if (name) {
+        const isRenameTarget = options.renameTarget
+          && token === 'compute'
+          && !conflictRevealed;
         const isRevealedConflict = options.revealConflict
           && token === 'compute'
           && !conflictRevealed;
-        if (isRevealedConflict) conflictRevealed = true;
+        if (isRenameTarget || isRevealedConflict) conflictRevealed = true;
+        if (isRenameTarget) {
+          return `<button class="code-action-target rename-code-action name" type="button" data-code-action="rename-function" aria-label="Исправить имя функции compute на calculate">${token}</button>`;
+        }
         return `<span class="name${isRevealedConflict ? ' has-diagnostic' : ''}"${isRevealedConflict ? ` data-revealed-location="${options.locationId}"` : ''}>${token}</span>`;
       }
       if (operator) return `<span class="op">${token}</span>`;
@@ -454,9 +463,13 @@ END_FUNCTION`
     scenario.activeDocumentId = documentId;
     const revealedLocation = getBuildLocation(scenario.revealedDiagnosticLocation);
     const revealConflict = revealedLocation?.documentId === documentId;
+    const renameTarget = revealConflict
+      && documentId === 'compute-a'
+      && !scenario.renameValid;
     sourceCode.dataset.source = sourceDocument.source;
     sourceCode.innerHTML = highlightSource(sourceDocument.source, {
       revealConflict,
+      renameTarget,
       locationId: revealedLocation?.id
     });
 
@@ -482,6 +495,7 @@ END_FUNCTION`
 
     root.dataset.activeDocumentId = documentId;
     root.dataset.revealedDiagnosticLocation = scenario.revealedDiagnosticLocation || '';
+    root.dataset.renameValid = String(scenario.renameValid);
     if (revealConflict) {
       const codeCanvas = sourceCode.closest('.code-canvas');
       codeCanvas.scrollTop = 0;
@@ -501,6 +515,44 @@ END_FUNCTION`
     scenario.revealedDiagnosticLocation = location.id;
     renderDocument(location.documentId);
     renderBuildDiagnostics(snapshot);
+  }
+
+  function syncDocumentName(documentId) {
+    const documentData = sourceDocuments[documentId];
+    if (!documentData) return;
+
+    editorTabs
+      .find(tab => tab.dataset.editorTab === documentId)
+      ?.querySelector('span:not(.tab-close)')
+      ?.replaceChildren(documentData.name);
+    treeDocuments
+      .find(row => row.dataset.treeDocument === documentId)
+      ?.querySelector('span:not(.chevron-spacer):not(.tree-icon)')
+      ?.replaceChildren(documentData.name);
+  }
+
+  function applyFunctionRename() {
+    if (scenario.state !== 'compiler-messages-build-1'
+      || activeDocument !== 'compute-a'
+      || scenario.revealedDiagnosticLocation !== 'compute-a:1'
+      || scenario.renameValid) return;
+
+    const documentData = sourceDocuments['compute-a'];
+    const nextSource = documentData.source.replace(
+      /(\bFUNCTION\s+)compute\b/,
+      '$1calculate'
+    );
+    if (nextSource === documentData.source) return;
+
+    documentData.source = nextSource;
+    documentData.name = 'calculate';
+    scenario.renameValid = /^FUNCTION\s+calculate\s*:\s*DINT\b/m.test(documentData.source);
+    if (!scenario.renameValid) return;
+
+    scenario.revealedDiagnosticLocation = null;
+    syncDocumentName('compute-a');
+    setCompileVisual('default', false);
+    renderDocument('compute-a');
   }
 
   function clamp(value, min, max) {
@@ -611,6 +663,13 @@ END_FUNCTION`
     scenario.expandedDiagnosticId = willExpand ? diagnosticCode : null;
     scenario.selectedBuildDiagnosticLocation = willExpand ? diagnostic.locations[0].id : null;
     renderBuildDiagnostics(snapshot);
+  });
+
+  sourceCode.addEventListener('click', event => {
+    const target = event.target.closest('[data-code-action]');
+    if (!target || !sourceCode.contains(target)) return;
+    event.preventDefault();
+    if (target.dataset.codeAction === 'rename-function') applyFunctionRename();
   });
 
   verticalResizer.addEventListener('pointerdown', event => beginDrag(event, 'vertical'));
