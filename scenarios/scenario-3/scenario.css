@@ -125,6 +125,14 @@
   line-height: 16px;
 }
 
+.build-diagnostic-row.is-selected {
+  background: #2e3136;
+}
+
+.build-diagnostic-row[data-diagnostic-toggle] {
+  cursor: pointer;
+}
+
 .build-diagnostic-leading {
   display: flex;
   align-items: center;
@@ -146,7 +154,7 @@
   padding: 0;
   border: 0;
   background: transparent;
-  cursor: default;
+  cursor: pointer;
 }
 
 .build-diagnostic-disclosure::before {
@@ -159,6 +167,17 @@
   border-right: 1px solid var(--gray-7);
   border-bottom: 1px solid var(--gray-7);
   transform: rotate(-45deg);
+}
+
+.build-diagnostic-row[data-expanded="true"] .build-diagnostic-disclosure::before {
+  left: 6px;
+  top: 5px;
+  transform: rotate(45deg);
+}
+
+.build-diagnostic-spacer {
+  width: 20px;
+  height: 20px;
 }
 
 .build-diagnostic-code,
@@ -191,6 +210,82 @@
   width: 4px;
   height: 4px;
   border-inline: 1px solid var(--gray-9);
+}
+
+.build-preview.has-content {
+  overflow: auto;
+}
+
+.build-preview-output {
+  min-width: 430px;
+  padding: 12px 10px 16px;
+  color: #d6d8dc;
+  font-family: "JetBrains Mono", Consolas, monospace;
+  font-size: 11px;
+  line-height: 18px;
+  white-space: nowrap;
+}
+
+.build-preview-message code {
+  color: #14b8c4;
+  font: inherit;
+}
+
+.build-preview-path {
+  color: #4ecb71;
+}
+
+.build-preview-source {
+  margin-top: 4px;
+}
+
+.build-preview-source-line {
+  min-height: 18px;
+  display: grid;
+  grid-template-columns: 20px 14px minmax(0, 1fr);
+}
+
+.build-preview-source-line.has-conflict {
+  background: #2e3136;
+}
+
+.build-preview-line-number,
+.build-preview-line-marker,
+.build-preview-conflict {
+  color: #ef6c78;
+}
+
+.build-preview-line-number {
+  text-align: right;
+  padding-right: 4px;
+}
+
+.build-preview-source-line code {
+  color: #d6d8dc;
+  font: inherit;
+}
+
+.build-preview-source-line .kw,
+.build-preview-source-line .type {
+  color: #16bdc8;
+}
+
+.build-preview-source-line .name {
+  color: #edc75c;
+}
+
+.build-preview-source-line .op,
+.build-preview-source-line .num {
+  color: #f08b79;
+}
+
+.build-preview-conflict {
+  padding-left: 20px;
+}
+
+.build-preview-related {
+  margin-top: 3px;
+  padding-left: 4px;
 }
 
 .build-panel .vertical-tabs button {

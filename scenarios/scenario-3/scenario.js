@@ -18,6 +18,7 @@
   const consoleView = document.querySelector('[data-console-view]');
   const buildResult = document.querySelector('[data-build-result]');
   const buildDiagnostics = document.querySelector('[data-build-diagnostics]');
+  const buildPreview = document.querySelector('[data-build-preview]');
   const buildCounters = {
     error: document.querySelector('[data-build-counter="error"]'),
     warning: document.querySelector('[data-build-counter="warning"]'),
@@ -33,8 +34,25 @@
   const CMP101 = Object.freeze({
     code: 'CMP101',
     description: "Функция 'compute' определена несколько раз. Функция до...",
-    file: 'compute.st',
-    line: ':1'
+    locations: Object.freeze([
+      Object.freeze({
+        id: 'compute-b:1',
+        documentId: 'compute-b',
+        file: 'compute.st',
+        line: ':1',
+        previewPath: '.\\util\\src\\lib.st:9:1',
+        kind: 'error'
+      }),
+      Object.freeze({
+        id: 'compute-a:1',
+        documentId: 'compute-a',
+        file: 'compute.st',
+        line: ':1',
+        previewPath: '.\\test\\src\\main.st:8:1',
+        kind: 'info',
+        description: "Первый раз функция 'compute' определена здесь"
+      })
+    ])
   });
   const RUNNING_CONSOLE_LINES = [
     'Запущена генерация кода',
@@ -73,7 +91,9 @@ END_FUNCTION`
     pressTimer: null,
     completionTimer: null,
     view: 'build',
-    builds: []
+    builds: [],
+    expandedDiagnosticId: null,
+    selectedBuildDiagnosticLocation: null
   };
 
   function setState(state) {
@@ -130,6 +150,12 @@ END_FUNCTION`
     });
     scenario.builds.push(snapshot);
     root.dataset.buildCount = String(scenario.builds.length);
+    root.dataset.buildSnapshotFrozen = String(
+      Object.isFrozen(snapshot)
+      && Object.isFrozen(snapshot.sourceSnapshot)
+      && Object.isFrozen(snapshot.diagnostics)
+      && Object.isFrozen(snapshot.diagnostics[0].locations)
+    );
     return snapshot;
   }
 
@@ -158,11 +184,26 @@ END_FUNCTION`
     });
   }
 
-  function renderCollapsedDiagnostic(diagnostic) {
+  function renderDiagnosticLocation(location) {
+    const node = document.createElement('span');
+    node.className = 'build-diagnostic-location';
+    node.dataset.buildLocation = location.id;
+    node.dataset.documentId = location.documentId;
+    node.textContent = location.file;
+    const line = document.createElement('em');
+    line.textContent = location.line;
+    node.append(line);
+    return node;
+  }
+
+  function renderDiagnosticRow(diagnostic, expanded) {
+    const location = diagnostic.locations[0];
     const row = document.createElement('div');
-    row.className = 'build-diagnostic-row';
+    row.className = 'build-diagnostic-row is-selected';
     row.dataset.diagnosticCode = diagnostic.code;
-    row.dataset.expanded = 'false';
+    row.dataset.diagnosticToggle = diagnostic.code;
+    row.dataset.expanded = String(expanded);
+    row.setAttribute('aria-expanded', String(expanded));
 
     const leading = document.createElement('div');
     leading.className = 'build-diagnostic-leading';
@@ -170,9 +211,8 @@ END_FUNCTION`
     disclosure.className = 'build-diagnostic-disclosure';
     disclosure.type = 'button';
     disclosure.dataset.diagnosticDisclosure = diagnostic.code;
-    disclosure.setAttribute('aria-label', `${diagnostic.code} свёрнута`);
-    disclosure.setAttribute('aria-expanded', 'false');
-    disclosure.setAttribute('aria-disabled', 'true');
+    disclosure.setAttribute('aria-label', `${diagnostic.code} ${expanded ? 'свёрнуть' : 'раскрыть'}`);
+    disclosure.setAttribute('aria-expanded', String(expanded));
     const errorIcon = document.createElement('img');
     errorIcon.src = 'assets/icons/status-error.svg';
     errorIcon.alt = '';
@@ -184,22 +224,126 @@ END_FUNCTION`
     const description = document.createElement('span');
     description.className = 'build-diagnostic-description';
     description.textContent = diagnostic.description;
-    const location = document.createElement('span');
-    location.className = 'build-diagnostic-location';
-    location.textContent = diagnostic.file;
-    const line = document.createElement('em');
-    line.textContent = diagnostic.line;
-    location.append(line);
-
-    row.append(leading, code, description, location);
+    row.append(leading, code, description, renderDiagnosticLocation(location));
     return row;
+  }
+
+  function renderInformerRow(diagnostic, location) {
+    const row = document.createElement('div');
+    row.className = 'build-diagnostic-row build-diagnostic-informer';
+    row.dataset.diagnosticCode = diagnostic.code;
+    row.dataset.locationId = location.id;
+
+    const leading = document.createElement('div');
+    leading.className = 'build-diagnostic-leading';
+    const spacer = document.createElement('span');
+    spacer.className = 'build-diagnostic-spacer';
+    const infoIcon = document.createElement('img');
+    infoIcon.src = 'assets/icons/status-info.svg';
+    infoIcon.alt = '';
+    leading.append(spacer, infoIcon);
+
+    const code = document.createElement('span');
+    code.className = 'build-diagnostic-code';
+    code.textContent = diagnostic.code;
+    const description = document.createElement('span');
+    description.className = 'build-diagnostic-description';
+    description.textContent = location.description;
+
+    row.append(leading, code, description, renderDiagnosticLocation(location));
+    return row;
+  }
+
+  function renderBuildPreview(snapshot, diagnostic) {
+    const location = diagnostic.locations.find(
+      item => item.id === scenario.selectedBuildDiagnosticLocation
+    );
+    buildPreview.replaceChildren();
+    buildPreview.classList.toggle('has-content', Boolean(location));
+
+    if (!location) {
+      buildPreview.setAttribute('aria-label', 'Предпросмотр кода пуст');
+      buildPreview.removeAttribute('data-preview-document');
+      return;
+    }
+
+    const snapshotSource = snapshot.sourceSnapshot[location.documentId];
+    buildPreview.dataset.previewDocument = location.documentId;
+    buildPreview.setAttribute('aria-label', `Предпросмотр ${location.file}${location.line}`);
+
+    const output = document.createElement('div');
+    output.className = 'build-preview-output';
+
+    const message = document.createElement('div');
+    message.className = 'build-preview-message';
+    message.append('error: the name ');
+    const symbol = document.createElement('code');
+    symbol.textContent = '`compute`';
+    message.append(symbol, ' is defined multiple times');
+
+    const path = document.createElement('div');
+    path.className = 'build-preview-path';
+    path.textContent = `  → ${location.previewPath}`;
+    output.append(message, path);
+
+    const source = document.createElement('div');
+    source.className = 'build-preview-source';
+    snapshotSource.split('\n').forEach((sourceLine, index) => {
+      const line = document.createElement('div');
+      line.className = 'build-preview-source-line';
+      if (index === 0) line.classList.add('has-conflict');
+      const number = document.createElement('span');
+      number.className = 'build-preview-line-number';
+      number.textContent = String(index + 1);
+      const marker = document.createElement('span');
+      marker.className = 'build-preview-line-marker';
+      marker.textContent = index === 0 ? '/' : '|';
+      const code = document.createElement('code');
+      code.innerHTML = highlightSource(sourceLine) || '&nbsp;';
+      line.append(number, marker, code);
+      source.append(line);
+    });
+
+    const conflict = document.createElement('div');
+    conflict.className = 'build-preview-conflict';
+    conflict.textContent = "|_________________ ^ `compute` redefined here";
+    const otherLocation = diagnostic.locations.find(item => item.id !== location.id);
+    const related = document.createElement('div');
+    related.className = 'build-preview-path build-preview-related';
+    related.textContent = `... ${otherLocation.previewPath}`;
+
+    output.append(source, conflict, related);
+    buildPreview.append(output);
+  }
+
+  function renderBuildDiagnostics(snapshot) {
+    const nodes = [];
+    snapshot.diagnostics.forEach(diagnostic => {
+      const expanded = scenario.expandedDiagnosticId === diagnostic.code;
+      nodes.push(renderDiagnosticRow(diagnostic, expanded));
+      if (expanded) nodes.push(renderInformerRow(diagnostic, diagnostic.locations[1]));
+    });
+    buildDiagnostics.replaceChildren(...nodes);
+
+    const selectedDiagnostic = snapshot.diagnostics.find(
+      diagnostic => diagnostic.code === scenario.expandedDiagnosticId
+    );
+    if (selectedDiagnostic) renderBuildPreview(snapshot, selectedDiagnostic);
+    else {
+      buildPreview.replaceChildren();
+      buildPreview.classList.remove('has-content');
+      buildPreview.setAttribute('aria-label', 'Предпросмотр кода пуст');
+      buildPreview.removeAttribute('data-preview-document');
+    }
+    root.dataset.expandedDiagnosticId = scenario.expandedDiagnosticId || '';
+    root.dataset.selectedBuildDiagnosticLocation = scenario.selectedBuildDiagnosticLocation || '';
   }
 
   function showBuild(snapshot) {
     scenario.view = 'build';
     renderBuildTab(snapshot);
     renderBuildCounters(snapshot);
-    buildDiagnostics.replaceChildren(...snapshot.diagnostics.map(renderCollapsedDiagnostic));
+    renderBuildDiagnostics(snapshot);
     consolePanelButton.classList.remove('is-active');
     consolePanelButton.removeAttribute('aria-current');
     buildPanelButton.classList.add('is-active');
@@ -390,6 +534,20 @@ END_FUNCTION`
     if (!snapshot) return;
     setState('compiler-messages-build-1');
     showBuild(snapshot);
+  });
+
+  buildDiagnostics.addEventListener('click', event => {
+    const toggle = event.target.closest('[data-diagnostic-toggle], [data-diagnostic-disclosure]');
+    if (!toggle || scenario.state !== 'compiler-messages-build-1') return;
+    const diagnosticCode = toggle.dataset.diagnosticToggle || toggle.dataset.diagnosticDisclosure;
+    const snapshot = scenario.builds[0];
+    const diagnostic = snapshot?.diagnostics.find(item => item.code === diagnosticCode);
+    if (!diagnostic) return;
+
+    const willExpand = scenario.expandedDiagnosticId !== diagnosticCode;
+    scenario.expandedDiagnosticId = willExpand ? diagnosticCode : null;
+    scenario.selectedBuildDiagnosticLocation = willExpand ? diagnostic.locations[0].id : null;
+    renderBuildDiagnostics(snapshot);
   });
 
   verticalResizer.addEventListener('pointerdown', event => beginDrag(event, 'vertical'));
