@@ -93,7 +93,9 @@ END_FUNCTION`
     view: 'build',
     builds: [],
     expandedDiagnosticId: null,
-    selectedBuildDiagnosticLocation: null
+    selectedBuildDiagnosticLocation: null,
+    revealedDiagnosticLocation: null,
+    activeDocumentId: activeDocument
   };
 
   function setState(state) {
@@ -185,10 +187,15 @@ END_FUNCTION`
   }
 
   function renderDiagnosticLocation(location) {
-    const node = document.createElement('span');
+    const node = document.createElement('button');
     node.className = 'build-diagnostic-location';
+    node.type = 'button';
     node.dataset.buildLocation = location.id;
     node.dataset.documentId = location.documentId;
+    node.setAttribute('aria-label', `Открыть ${location.file}${location.line}`);
+    if (scenario.revealedDiagnosticLocation === location.id) {
+      node.setAttribute('aria-current', 'location');
+    }
     node.textContent = location.file;
     const line = document.createElement('em');
     line.textContent = location.line;
@@ -412,16 +419,31 @@ END_FUNCTION`
       .replaceAll('>', '&gt;');
   }
 
-  function highlightSource(source) {
+  function highlightSource(source, options = {}) {
+    let conflictRevealed = false;
     const tokenPattern = /\b(FUNCTION|VAR_INPUT|END_VAR|END_FUNCTION)\b|\b(DINT|INT)\b|\b(compute|t)\b|(:=|:|;|\*)|\b(\d+)\b/g;
     return escapeHtml(source).replace(tokenPattern, (token, keyword, type, name, operator, number) => {
       if (keyword) return `<span class="kw">${token}</span>`;
       if (type) return `<span class="type">${token}</span>`;
-      if (name) return `<span class="name">${token}</span>`;
+      if (name) {
+        const isRevealedConflict = options.revealConflict
+          && token === 'compute'
+          && !conflictRevealed;
+        if (isRevealedConflict) conflictRevealed = true;
+        return `<span class="name${isRevealedConflict ? ' has-diagnostic' : ''}"${isRevealedConflict ? ` data-revealed-location="${options.locationId}"` : ''}>${token}</span>`;
+      }
       if (operator) return `<span class="op">${token}</span>`;
       if (number) return `<span class="num">${token}</span>`;
       return token;
     });
+  }
+
+  function getBuildLocation(locationId) {
+    if (!locationId) return null;
+    return scenario.builds
+      .flatMap(snapshot => snapshot.diagnostics)
+      .flatMap(diagnostic => diagnostic.locations)
+      .find(location => location.id === locationId) || null;
   }
 
   function renderDocument(documentId) {
@@ -429,8 +451,14 @@ END_FUNCTION`
     if (!sourceDocument) return;
 
     activeDocument = documentId;
+    scenario.activeDocumentId = documentId;
+    const revealedLocation = getBuildLocation(scenario.revealedDiagnosticLocation);
+    const revealConflict = revealedLocation?.documentId === documentId;
     sourceCode.dataset.source = sourceDocument.source;
-    sourceCode.innerHTML = highlightSource(sourceDocument.source);
+    sourceCode.innerHTML = highlightSource(sourceDocument.source, {
+      revealConflict,
+      locationId: revealedLocation?.id
+    });
 
     editorTabs.forEach(tab => {
       const isActive = tab.dataset.editorTab === documentId;
@@ -440,10 +468,39 @@ END_FUNCTION`
 
     treeDocuments.forEach(row => {
       const isSelected = row.dataset.treeDocument === documentId;
+      const hasDiagnostic = Boolean(
+        scenario.revealedDiagnosticLocation
+        && scenario.builds[0]?.diagnostics.some(diagnostic => (
+          diagnostic.locations.some(location => location.documentId === row.dataset.treeDocument)
+        ))
+      );
       row.classList.toggle('is-selected', isSelected);
+      row.classList.toggle('has-diagnostic', hasDiagnostic);
       if (isSelected) row.setAttribute('aria-selected', 'true');
       else row.removeAttribute('aria-selected');
     });
+
+    root.dataset.activeDocumentId = documentId;
+    root.dataset.revealedDiagnosticLocation = scenario.revealedDiagnosticLocation || '';
+    if (revealConflict) {
+      const codeCanvas = sourceCode.closest('.code-canvas');
+      codeCanvas.scrollTop = 0;
+      codeCanvas.scrollLeft = 0;
+    }
+  }
+
+  function navigateToBuildLocation(locationId) {
+    if (scenario.state !== 'compiler-messages-build-1'
+      || scenario.expandedDiagnosticId !== CMP101.code) return;
+    const snapshot = scenario.builds[0];
+    const location = snapshot?.diagnostics
+      .flatMap(diagnostic => diagnostic.locations)
+      .find(item => item.id === locationId);
+    if (!location || !sourceDocuments[location.documentId]) return;
+
+    scenario.revealedDiagnosticLocation = location.id;
+    renderDocument(location.documentId);
+    renderBuildDiagnostics(snapshot);
   }
 
   function clamp(value, min, max) {
@@ -537,6 +594,12 @@ END_FUNCTION`
   });
 
   buildDiagnostics.addEventListener('click', event => {
+    const locationTarget = event.target.closest('[data-build-location]');
+    if (locationTarget) {
+      navigateToBuildLocation(locationTarget.dataset.buildLocation);
+      return;
+    }
+
     const toggle = event.target.closest('[data-diagnostic-toggle], [data-diagnostic-disclosure]');
     if (!toggle || scenario.state !== 'compiler-messages-build-1') return;
     const diagnosticCode = toggle.dataset.diagnosticToggle || toggle.dataset.diagnosticDisclosure;

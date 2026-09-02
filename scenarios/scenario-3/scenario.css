@@ -190,13 +190,27 @@
 }
 
 .build-diagnostic-location {
+  display: flex;
+  align-items: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
   color: #5684dd;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
 }
 
 .build-diagnostic-location em {
   margin-left: 8px;
   color: var(--gray-7);
   font-style: normal;
+}
+
+.build-diagnostic-location:hover,
+.build-diagnostic-location:focus-visible {
+  text-decoration: underline;
+  outline: 0;
 }
 
 .build-preview-resizer {
