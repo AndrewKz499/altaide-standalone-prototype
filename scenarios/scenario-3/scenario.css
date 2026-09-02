@@ -32,6 +32,26 @@
   background: var(--gray-14);
 }
 
+.build-empty[hidden],
+.scenario-3-console[hidden] {
+  display: none;
+}
+
+.scenario-3-console {
+  width: 700px;
+  padding: 12px;
+  font-size: 12px;
+  line-height: 20px;
+}
+
+#statusbar-label {
+  font-size: 14px;
+}
+
+.statusbar-progress > span {
+  width: 40%;
+}
+
 .build-panel .vertical-tabs button {
   cursor: default;
 }

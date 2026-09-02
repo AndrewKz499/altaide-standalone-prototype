@@ -7,7 +7,7 @@
   <title>AltaIDE — Scenario 3 · S01</title>
   <link rel="icon" href="data:,">
   <link rel="stylesheet" href="prototype.css?v=9">
-  <link rel="stylesheet" href="scenarios/scenario-3/scenario.css?v=1">
+  <link rel="stylesheet" href="scenarios/scenario-3/scenario.css?v=2">
 </head>
 <body>
   <main class="ide" aria-label="AltaIDE, Scenario 3">
@@ -30,7 +30,7 @@
           <span class="toolbar-divider" aria-hidden="true"></span>
           <button class="icon-button" type="button" aria-label="Добавить устройство"><img src="assets/icons/toolbar-add-device.svg" alt=""></button>
           <span class="toolbar-divider" aria-hidden="true"></span>
-          <button class="icon-button" type="button" aria-label="Компилировать" aria-disabled="true" data-action="compile"><img src="assets/icons/toolbar-compile.svg" alt=""></button>
+          <button class="icon-button" type="button" aria-label="Компилировать" data-action="compile"><img src="assets/icons/toolbar-compile.svg" alt=""></button>
           <span class="toolbar-divider" aria-hidden="true"></span>
           <button class="icon-button" type="button" aria-label="Подключиться"><img src="assets/icons/toolbar-connect.svg" alt=""></button>
           <button class="icon-button" type="button" aria-label="Загрузить в устройство"><img src="assets/icons/toolbar-load-to-device.svg" alt=""></button>
@@ -97,24 +97,31 @@
 
           <section class="bottom-panel build-panel" aria-label="Нижняя панель">
             <nav class="vertical-tabs" aria-label="Разделы нижней панели">
-              <button type="button" aria-label="Терминал" aria-disabled="true"><img src="assets/icons/panel-log.svg" alt=""></button>
+              <button type="button" aria-label="Консоль" aria-disabled="true" data-panel="console"><img src="assets/icons/panel-log.svg" alt=""></button>
               <button type="button" aria-label="Сообщения" aria-disabled="true"><img src="assets/icons/panel-messages.svg" alt=""></button>
-              <button class="is-active" type="button" aria-label="Сборка" aria-current="page"><img src="scenarios/scenario-3/build-console.svg" alt=""></button>
+              <button class="is-active" type="button" aria-label="Сборка" aria-current="page" data-panel="build"><img src="scenarios/scenario-3/build-console.svg" alt=""></button>
               <button type="button" aria-label="Переменные" aria-disabled="true"><img src="assets/icons/panel-variables.svg" alt=""></button>
             </nav>
             <div class="bottom-content build-content">
               <div class="bottom-tabs build-tabs" role="tablist" aria-label="Вкладки сборки">
                 <button class="is-active" type="button" role="tab" aria-selected="true"><img src="scenarios/scenario-3/build-console.svg" alt=""><span>Консоль</span></button>
               </div>
-              <div class="build-empty" aria-label="История сборок пуста"></div>
+              <div class="build-empty" aria-label="История сборок пуста" data-build-empty></div>
+              <pre class="console-output scenario-3-console" tabindex="0" aria-label="Консоль компиляции" data-console-view hidden></pre>
             </div>
           </section>
         </div>
       </section>
     </div>
 
-    <footer class="statusbar" aria-label="Строка состояния"></footer>
+    <footer class="statusbar" aria-label="Строка состояния">
+      <div class="statusbar-build" id="statusbar-build" hidden>
+        <span id="statusbar-label"></span>
+        <span class="statusbar-progress" role="progressbar" aria-label="Прогресс сборки" aria-valuemin="0" aria-valuemax="100" aria-valuenow="40"><span id="statusbar-progress-value"></span></span>
+        <span class="statusbar-close" aria-hidden="true"></span>
+      </div>
+    </footer>
   </main>
-  <script src="scenarios/scenario-3/scenario.js?v=1"></script>
+  <script src="scenarios/scenario-3/scenario.js?v=2"></script>
 </body>
 </html>

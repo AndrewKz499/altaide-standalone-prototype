@@ -10,6 +10,28 @@
   const sourceCode = document.querySelector('[data-source-code]');
   const editorTabs = [...document.querySelectorAll('[data-editor-tab]')];
   const treeDocuments = [...document.querySelectorAll('[data-tree-document]')];
+  const compileButton = document.querySelector('[data-action="compile"]');
+  const consolePanelButton = document.querySelector('[data-panel="console"]');
+  const buildPanelButton = document.querySelector('[data-panel="build"]');
+  const buildEmpty = document.querySelector('[data-build-empty]');
+  const consoleView = document.querySelector('[data-console-view]');
+  const statusbarBuild = document.getElementById('statusbar-build');
+  const statusbarLabel = document.getElementById('statusbar-label');
+  const statusbarProgress = document.getElementById('statusbar-progress-value');
+
+  const PRESS_DELAY_MS = 800;
+  const RUNNING_CONSOLE_LINES = [
+    'Запущена генерация кода',
+    'Журнал сообщений - создан',
+    'Генерация файлов',
+    'NEED YOGI implementation:Please, Build this target with fort stageII',
+    'Генерация исходных текстов завершена',
+    'executing \`C:\\Users\\t.yashina\\AppData\\Roaming\\AltaIDE\\Compiler\\bin\\castle.exe --',
+    'crate-name sys_prg code\\HardwareSpecific\\function.st code\\headers\\libc.sth',
+    'warning: 2 hidden warnings emitted',
+    'to show hidden diagnostics rerun with \`--verbose\` flag',
+    'executing \`C:\\Users\\t.yashina\\AppData\\Roaming\\AltaIDE\\Compiler\\bin\\castle.exe --crate-name plc_prg fort\\main\\..\\..\\code\\main.st\`'
+  ];
 
   const sourceDocuments = {
     'compute-a': {
@@ -28,6 +50,68 @@ END_FUNCTION`
   };
 
   let activeDocument = 'compute-b';
+  const scenario = {
+    state: 'initial',
+    sequence: 0,
+    starts: 0,
+    pressTimer: null
+  };
+
+  function setState(state) {
+    scenario.state = state;
+    root.dataset.scenarioStep = state;
+  }
+
+  function setCompileVisual(state, disabled) {
+    compileButton.dataset.state = state;
+    compileButton.disabled = disabled;
+    compileButton.setAttribute('aria-disabled', String(disabled));
+    compileButton.setAttribute('aria-pressed', String(state !== 'default'));
+  }
+
+  function showConsole(lines) {
+    consolePanelButton.classList.add('is-active');
+    consolePanelButton.removeAttribute('aria-disabled');
+    consolePanelButton.setAttribute('aria-current', 'page');
+    buildPanelButton.classList.remove('is-active');
+    buildPanelButton.removeAttribute('aria-current');
+    buildEmpty.hidden = true;
+    consoleView.hidden = false;
+    consoleView.textContent = lines.join('\n');
+    consoleView.scrollTop = 0;
+  }
+
+  function setBuilding(active) {
+    statusbarBuild.hidden = !active;
+    statusbarLabel.textContent = active ? 'Сборка проекта' : '';
+    statusbarProgress.style.width = active ? '40%' : '0';
+  }
+
+  function enterCompiling(sequence) {
+    if (sequence !== scenario.sequence || scenario.state !== 'compile-pressed') return;
+    scenario.pressTimer = null;
+    setState('compiling');
+    setCompileVisual('active', true);
+    showConsole(RUNNING_CONSOLE_LINES);
+    setBuilding(true);
+  }
+
+  function startCompilation() {
+    if (scenario.state !== 'initial' || scenario.pressTimer !== null) return;
+    scenario.starts += 1;
+    scenario.sequence += 1;
+    root.dataset.compileStarts = String(scenario.starts);
+    setState('compile-pressed');
+    setCompileVisual('pressed', true);
+    showConsole([]);
+    setBuilding(false);
+
+    const sequence = scenario.sequence;
+    scenario.pressTimer = window.setTimeout(
+      () => enterCompiling(sequence),
+      PRESS_DELAY_MS
+    );
+  }
 
   function escapeHtml(value) {
     return value
@@ -145,6 +229,8 @@ END_FUNCTION`
     row.addEventListener('click', () => renderDocument(row.dataset.treeDocument));
   });
 
+  compileButton.addEventListener('click', startCompilation);
+
   verticalResizer.addEventListener('pointerdown', event => beginDrag(event, 'vertical'));
   horizontalResizer.addEventListener('pointerdown', event => beginDrag(event, 'horizontal'));
 
@@ -164,5 +250,9 @@ END_FUNCTION`
 
   setSidebarWidth(cssPixels('--sidebar-width'));
   setBottomHeight(cssPixels('--bottom-panel-height'));
+  setState('initial');
+  setCompileVisual('default', false);
+  setBuilding(false);
+  root.dataset.compileStarts = '0';
   renderDocument(activeDocument);
 })();
