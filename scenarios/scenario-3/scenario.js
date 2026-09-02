@@ -31,6 +31,7 @@
   const PRESS_DELAY_MS = 800;
   const RUNNING_DELAY_MS = 3200;
   const BUILD_1_TIMESTAMP = '23.06.2026 15:43';
+  const BUILD_2_TIMESTAMP = '23.06.2026 15:55';
   const CMP101 = Object.freeze({
     code: 'CMP101',
     description: "Функция 'compute' определена несколько раз. Функция до...",
@@ -92,8 +93,10 @@ END_FUNCTION`
     starts: 0,
     pressTimer: null,
     completionTimer: null,
+    pendingBuildId: null,
     view: 'build',
     builds: [],
+    activeBuildId: null,
     expandedDiagnosticId: null,
     selectedBuildDiagnosticLocation: null,
     revealedDiagnosticLocation: null,
@@ -141,7 +144,8 @@ END_FUNCTION`
   }
 
   function createFirstBuildSnapshot() {
-    if (scenario.builds.length > 0) return scenario.builds[0];
+    const existing = scenario.builds.find(snapshot => snapshot.id === 'build-1');
+    if (existing) return existing;
 
     const sourceSnapshot = Object.freeze(Object.fromEntries(
       Object.entries(sourceDocuments).map(([id, documentData]) => [id, documentData.source])
@@ -154,22 +158,52 @@ END_FUNCTION`
       sourceSnapshot
     });
     scenario.builds.push(snapshot);
-    root.dataset.buildCount = String(scenario.builds.length);
-    root.dataset.buildSnapshotFrozen = String(
-      Object.isFrozen(snapshot)
-      && Object.isFrozen(snapshot.sourceSnapshot)
-      && Object.isFrozen(snapshot.diagnostics)
-      && Object.isFrozen(snapshot.diagnostics[0].locations)
-    );
+    updateBuildSnapshotState();
     return snapshot;
   }
 
-  function renderBuildTab(snapshot) {
+  function createSecondBuildSnapshot() {
+    const existing = scenario.builds.find(snapshot => snapshot.id === 'build-2');
+    if (existing) return existing;
+
+    const sourceSnapshot = Object.freeze(Object.fromEntries(
+      Object.entries(sourceDocuments).map(([id, documentData]) => [id, documentData.source])
+    ));
+    const snapshot = Object.freeze({
+      id: 'build-2',
+      timestamp: BUILD_2_TIMESTAMP,
+      counters: Object.freeze({ error: 0, warning: 0, info: 0 }),
+      diagnostics: Object.freeze([]),
+      sourceSnapshot
+    });
+    scenario.builds.push(snapshot);
+    updateBuildSnapshotState();
+    return snapshot;
+  }
+
+  function updateBuildSnapshotState() {
+    root.dataset.buildCount = String(scenario.builds.length);
+    root.dataset.buildSnapshotFrozen = String(
+      scenario.builds.every(snapshot => (
+        Object.isFrozen(snapshot)
+        && Object.isFrozen(snapshot.sourceSnapshot)
+        && Object.isFrozen(snapshot.counters)
+        && Object.isFrozen(snapshot.diagnostics)
+        && snapshot.diagnostics.every(diagnostic => (
+          Object.isFrozen(diagnostic)
+          && Object.isFrozen(diagnostic.locations)
+        ))
+      ))
+    );
+  }
+
+  function createBuildTab(snapshot, activeSnapshot) {
     const tab = document.createElement('button');
-    tab.className = 'is-active';
+    const isActive = snapshot.id === activeSnapshot.id;
+    tab.classList.toggle('is-active', isActive);
     tab.type = 'button';
     tab.setAttribute('role', 'tab');
-    tab.setAttribute('aria-selected', 'true');
+    tab.setAttribute('aria-selected', String(isActive));
     tab.dataset.buildId = snapshot.id;
     const icon = document.createElement('img');
     icon.src = 'scenarios/scenario-3/build-console.svg';
@@ -177,7 +211,14 @@ END_FUNCTION`
     const label = document.createElement('span');
     label.textContent = `Сборка ${snapshot.timestamp}`;
     tab.append(icon, label);
-    panelTabs.replaceChildren(tab);
+    return tab;
+  }
+
+  function renderBuildTabs(activeSnapshot) {
+    const tabs = [...scenario.builds]
+      .reverse()
+      .map(snapshot => createBuildTab(snapshot, activeSnapshot));
+    panelTabs.replaceChildren(...tabs);
   }
 
   function renderBuildCounters(snapshot) {
@@ -351,7 +392,8 @@ END_FUNCTION`
 
   function showBuild(snapshot) {
     scenario.view = 'build';
-    renderBuildTab(snapshot);
+    scenario.activeBuildId = snapshot.id;
+    renderBuildTabs(snapshot);
     renderBuildCounters(snapshot);
     renderBuildDiagnostics(snapshot);
     consolePanelButton.classList.remove('is-active');
@@ -365,6 +407,10 @@ END_FUNCTION`
     setBottomHeight(412);
   }
 
+  function getActiveBuildSnapshot() {
+    return scenario.builds.find(snapshot => snapshot.id === scenario.activeBuildId) || null;
+  }
+
   function setBuilding(active) {
     statusbarBuild.hidden = !active;
     statusbarLabel.textContent = active ? 'Сборка проекта' : '';
@@ -372,9 +418,12 @@ END_FUNCTION`
   }
 
   function enterCompiling(sequence) {
-    if (sequence !== scenario.sequence || scenario.state !== 'compile-pressed') return;
+    const expectedState = scenario.pendingBuildId === 'build-2'
+      ? 'compile-pressed-build-2'
+      : 'compile-pressed';
+    if (sequence !== scenario.sequence || scenario.state !== expectedState) return;
     scenario.pressTimer = null;
-    setState('compiling');
+    setState(scenario.pendingBuildId === 'build-2' ? 'compiling-build-2' : 'compiling');
     setCompileVisual('active', true);
     showConsole(RUNNING_CONSOLE_LINES);
     setBuilding(true);
@@ -385,25 +434,34 @@ END_FUNCTION`
   }
 
   function enterCompileComplete(sequence) {
-    if (sequence !== scenario.sequence || scenario.state !== 'compiling') return;
+    const buildId = scenario.pendingBuildId;
+    const expectedState = buildId === 'build-2' ? 'compiling-build-2' : 'compiling';
+    if (sequence !== scenario.sequence || scenario.state !== expectedState) return;
     scenario.completionTimer = null;
-    setState('compile-complete');
+    setState(buildId === 'build-2' ? 'compile-complete-build-2' : 'compile-complete');
     setCompileVisual('default', true);
     setBuilding(false);
-    createFirstBuildSnapshot();
+    if (buildId === 'build-2') createSecondBuildSnapshot();
+    else createFirstBuildSnapshot();
+    scenario.pendingBuildId = null;
     buildPanelButton.classList.add('has-notification');
     buildPanelButton.removeAttribute('aria-disabled');
     buildPanelButton.setAttribute('aria-label', 'Сообщения компилятора');
   }
 
   function startCompilation() {
-    if (scenario.state !== 'initial'
+    const isFirstBuild = scenario.state === 'initial' && scenario.builds.length === 0;
+    const isSecondBuild = scenario.state === 'compiler-messages-build-1'
+      && scenario.renameValid
+      && scenario.builds.length === 1;
+    if ((!isFirstBuild && !isSecondBuild)
       || scenario.pressTimer !== null
       || scenario.completionTimer !== null) return;
+    scenario.pendingBuildId = isSecondBuild ? 'build-2' : 'build-1';
     scenario.starts += 1;
     scenario.sequence += 1;
     root.dataset.compileStarts = String(scenario.starts);
-    setState('compile-pressed');
+    setState(isSecondBuild ? 'compile-pressed-build-2' : 'compile-pressed');
     setCompileVisual('pressed', true);
     showConsole([]);
     setBuilding(false);
@@ -504,9 +562,10 @@ END_FUNCTION`
   }
 
   function navigateToBuildLocation(locationId) {
-    if (scenario.state !== 'compiler-messages-build-1'
+    if (!scenario.state.startsWith('compiler-messages-build-')
+      || scenario.activeBuildId !== 'build-1'
       || scenario.expandedDiagnosticId !== CMP101.code) return;
-    const snapshot = scenario.builds[0];
+    const snapshot = getActiveBuildSnapshot();
     const location = snapshot?.diagnostics
       .flatMap(diagnostic => diagnostic.locations)
       .find(item => item.id === locationId);
@@ -633,15 +692,35 @@ END_FUNCTION`
   compileButton.addEventListener('click', startCompilation);
 
   consolePanelButton.addEventListener('click', () => {
-    if (!['compile-complete', 'compiler-messages-build-1'].includes(scenario.state)) return;
+    if (![
+      'compile-complete',
+      'compiler-messages-build-1',
+      'compile-complete-build-2',
+      'compiler-messages-build-2'
+    ].includes(scenario.state)) return;
     showConsole(RUNNING_CONSOLE_LINES);
   });
 
   buildPanelButton.addEventListener('click', () => {
-    if (!['compile-complete', 'compiler-messages-build-1'].includes(scenario.state)) return;
-    const snapshot = scenario.builds[0];
+    if (![
+      'compile-complete',
+      'compiler-messages-build-1',
+      'compile-complete-build-2',
+      'compiler-messages-build-2'
+    ].includes(scenario.state)) return;
+    const snapshot = scenario.builds.at(-1);
     if (!snapshot) return;
-    setState('compiler-messages-build-1');
+    setState(snapshot.id === 'build-2'
+      ? 'compiler-messages-build-2'
+      : 'compiler-messages-build-1');
+    showBuild(snapshot);
+  });
+
+  panelTabs.addEventListener('click', event => {
+    const tab = event.target.closest('[data-build-id]');
+    if (!tab || !panelTabs.contains(tab)) return;
+    const snapshot = scenario.builds.find(build => build.id === tab.dataset.buildId);
+    if (!snapshot || !scenario.state.startsWith('compiler-messages-build-')) return;
     showBuild(snapshot);
   });
 
@@ -653,9 +732,9 @@ END_FUNCTION`
     }
 
     const toggle = event.target.closest('[data-diagnostic-toggle], [data-diagnostic-disclosure]');
-    if (!toggle || scenario.state !== 'compiler-messages-build-1') return;
+    if (!toggle || !scenario.state.startsWith('compiler-messages-build-')) return;
     const diagnosticCode = toggle.dataset.diagnosticToggle || toggle.dataset.diagnosticDisclosure;
-    const snapshot = scenario.builds[0];
+    const snapshot = getActiveBuildSnapshot();
     const diagnostic = snapshot?.diagnostics.find(item => item.code === diagnosticCode);
     if (!diagnostic) return;
 

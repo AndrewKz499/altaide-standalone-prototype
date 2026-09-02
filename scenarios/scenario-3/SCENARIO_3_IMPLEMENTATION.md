@@ -17,10 +17,10 @@
 3. CMP101 expands → two conflict locations and snapshot-based code preview.
 4. Location click → corresponding live document opens; Content Tab and Tree selection sync; conflict is revealed without changing source or Build #1.
 5. Location → click `compute` → live name becomes `calculate`; Build #1 remains unchanged.
+6. Rename → Compile → Console/progress → immutable Build #2 (`23.06.2026 15:55`) without name-conflict diagnostics; Build #1 remains selectable and unchanged.
 
 ## Remaining flow
 
-6. Compile → Build #2 without name conflict; Build #1 remains unchanged.
 7. Click `Вставьте код` → calculate body appears → Analyzer reports ST001.
 8. Click `Объявите переменную` → result declaration appears → Analyzer clears; Build history remains unchanged.
 9. Final Compile → successful Build #3.
