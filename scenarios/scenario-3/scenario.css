@@ -33,7 +33,8 @@
 }
 
 .build-empty[hidden],
-.scenario-3-console[hidden] {
+.scenario-3-console[hidden],
+.build-result[hidden] {
   display: none;
 }
 
@@ -50,6 +51,146 @@
 
 .statusbar-progress > span {
   width: 40%;
+}
+
+.build-result {
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: 33px minmax(0, 1fr);
+  overflow: hidden;
+}
+
+.build-toolbar {
+  border-top: 0;
+}
+
+.build-counters {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.build-counter {
+  height: 20px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 4px;
+  border-radius: 4px;
+  background: var(--gray-11);
+  color: var(--gray-1);
+  font-size: 12px;
+  line-height: 20px;
+}
+
+.build-counter img {
+  width: 14px;
+  height: 14px;
+  display: block;
+  object-fit: contain;
+}
+
+.build-result-body {
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 707px) 16px minmax(0, 1fr);
+  overflow: hidden;
+  background: var(--gray-14);
+}
+
+.build-diagnostics,
+.build-preview {
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--gray-14);
+}
+
+.build-diagnostics {
+  padding-top: 2px;
+}
+
+.build-diagnostic-row {
+  width: 100%;
+  min-width: 0;
+  height: 28px;
+  display: grid;
+  grid-template-columns: 44px 66px minmax(0, 1fr) 104px;
+  align-items: center;
+  gap: 10px;
+  color: var(--gray-7);
+  font-size: 12px;
+  line-height: 16px;
+}
+
+.build-diagnostic-leading {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+}
+
+.build-diagnostic-leading img {
+  width: 20px;
+  height: 20px;
+  display: block;
+  object-fit: contain;
+}
+
+.build-diagnostic-disclosure {
+  width: 20px;
+  height: 20px;
+  position: relative;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: default;
+}
+
+.build-diagnostic-disclosure::before {
+  content: "";
+  position: absolute;
+  left: 5px;
+  top: 6px;
+  width: 6px;
+  height: 6px;
+  border-right: 1px solid var(--gray-7);
+  border-bottom: 1px solid var(--gray-7);
+  transform: rotate(-45deg);
+}
+
+.build-diagnostic-code,
+.build-diagnostic-description,
+.build-diagnostic-location {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.build-diagnostic-location {
+  color: #5684dd;
+}
+
+.build-diagnostic-location em {
+  margin-left: 8px;
+  color: var(--gray-7);
+  font-style: normal;
+}
+
+.build-preview-resizer {
+  display: grid;
+  place-items: center;
+  border-inline: 1px solid var(--gray-13);
+  background: var(--gray-14);
+}
+
+.build-preview-resizer span {
+  width: 4px;
+  height: 4px;
+  border-inline: 1px solid var(--gray-9);
 }
 
 .build-panel .vertical-tabs button {

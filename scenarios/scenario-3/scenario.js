@@ -13,13 +13,29 @@
   const compileButton = document.querySelector('[data-action="compile"]');
   const consolePanelButton = document.querySelector('[data-panel="console"]');
   const buildPanelButton = document.querySelector('[data-panel="build"]');
+  const panelTabs = document.querySelector('[data-panel-tabs]');
   const buildEmpty = document.querySelector('[data-build-empty]');
   const consoleView = document.querySelector('[data-console-view]');
+  const buildResult = document.querySelector('[data-build-result]');
+  const buildDiagnostics = document.querySelector('[data-build-diagnostics]');
+  const buildCounters = {
+    error: document.querySelector('[data-build-counter="error"]'),
+    warning: document.querySelector('[data-build-counter="warning"]'),
+    info: document.querySelector('[data-build-counter="info"]')
+  };
   const statusbarBuild = document.getElementById('statusbar-build');
   const statusbarLabel = document.getElementById('statusbar-label');
   const statusbarProgress = document.getElementById('statusbar-progress-value');
 
   const PRESS_DELAY_MS = 800;
+  const RUNNING_DELAY_MS = 3200;
+  const BUILD_1_TIMESTAMP = '23.06.2026 15:43';
+  const CMP101 = Object.freeze({
+    code: 'CMP101',
+    description: "Функция 'compute' определена несколько раз. Функция до...",
+    file: 'compute.st',
+    line: ':1'
+  });
   const RUNNING_CONSOLE_LINES = [
     'Запущена генерация кода',
     'Журнал сообщений - создан',
@@ -54,7 +70,10 @@ END_FUNCTION`
     state: 'initial',
     sequence: 0,
     starts: 0,
-    pressTimer: null
+    pressTimer: null,
+    completionTimer: null,
+    view: 'build',
+    builds: []
   };
 
   function setState(state) {
@@ -70,15 +89,126 @@ END_FUNCTION`
   }
 
   function showConsole(lines) {
+    const tab = document.createElement('button');
+    tab.className = 'is-active';
+    tab.type = 'button';
+    tab.setAttribute('role', 'tab');
+    tab.setAttribute('aria-selected', 'true');
+    const icon = document.createElement('img');
+    icon.src = 'scenarios/scenario-3/build-console.svg';
+    icon.alt = '';
+    const label = document.createElement('span');
+    label.textContent = 'Консоль';
+    tab.append(icon, label);
+    panelTabs.replaceChildren(tab);
+
+    scenario.view = 'console';
     consolePanelButton.classList.add('is-active');
     consolePanelButton.removeAttribute('aria-disabled');
     consolePanelButton.setAttribute('aria-current', 'page');
     buildPanelButton.classList.remove('is-active');
     buildPanelButton.removeAttribute('aria-current');
     buildEmpty.hidden = true;
+    buildResult.hidden = true;
     consoleView.hidden = false;
     consoleView.textContent = lines.join('\n');
     consoleView.scrollTop = 0;
+  }
+
+  function createFirstBuildSnapshot() {
+    if (scenario.builds.length > 0) return scenario.builds[0];
+
+    const sourceSnapshot = Object.freeze(Object.fromEntries(
+      Object.entries(sourceDocuments).map(([id, documentData]) => [id, documentData.source])
+    ));
+    const snapshot = Object.freeze({
+      id: 'build-1',
+      timestamp: BUILD_1_TIMESTAMP,
+      counters: Object.freeze({ error: 1, warning: 0, info: 1 }),
+      diagnostics: Object.freeze([Object.freeze({ ...CMP101 })]),
+      sourceSnapshot
+    });
+    scenario.builds.push(snapshot);
+    root.dataset.buildCount = String(scenario.builds.length);
+    return snapshot;
+  }
+
+  function renderBuildTab(snapshot) {
+    const tab = document.createElement('button');
+    tab.className = 'is-active';
+    tab.type = 'button';
+    tab.setAttribute('role', 'tab');
+    tab.setAttribute('aria-selected', 'true');
+    tab.dataset.buildId = snapshot.id;
+    const icon = document.createElement('img');
+    icon.src = 'scenarios/scenario-3/build-console.svg';
+    icon.alt = '';
+    const label = document.createElement('span');
+    label.textContent = `Сборка ${snapshot.timestamp}`;
+    tab.append(icon, label);
+    panelTabs.replaceChildren(tab);
+  }
+
+  function renderBuildCounters(snapshot) {
+    Object.entries(snapshot.counters).forEach(([key, value]) => {
+      const counter = buildCounters[key];
+      counter.querySelector('span').textContent = String(value);
+      const labels = { error: 'Ошибки', warning: 'Предупреждения', info: 'Информация' };
+      counter.setAttribute('aria-label', `${labels[key]}: ${value}`);
+    });
+  }
+
+  function renderCollapsedDiagnostic(diagnostic) {
+    const row = document.createElement('div');
+    row.className = 'build-diagnostic-row';
+    row.dataset.diagnosticCode = diagnostic.code;
+    row.dataset.expanded = 'false';
+
+    const leading = document.createElement('div');
+    leading.className = 'build-diagnostic-leading';
+    const disclosure = document.createElement('button');
+    disclosure.className = 'build-diagnostic-disclosure';
+    disclosure.type = 'button';
+    disclosure.dataset.diagnosticDisclosure = diagnostic.code;
+    disclosure.setAttribute('aria-label', `${diagnostic.code} свёрнута`);
+    disclosure.setAttribute('aria-expanded', 'false');
+    disclosure.setAttribute('aria-disabled', 'true');
+    const errorIcon = document.createElement('img');
+    errorIcon.src = 'assets/icons/status-error.svg';
+    errorIcon.alt = '';
+    leading.append(disclosure, errorIcon);
+
+    const code = document.createElement('span');
+    code.className = 'build-diagnostic-code';
+    code.textContent = diagnostic.code;
+    const description = document.createElement('span');
+    description.className = 'build-diagnostic-description';
+    description.textContent = diagnostic.description;
+    const location = document.createElement('span');
+    location.className = 'build-diagnostic-location';
+    location.textContent = diagnostic.file;
+    const line = document.createElement('em');
+    line.textContent = diagnostic.line;
+    location.append(line);
+
+    row.append(leading, code, description, location);
+    return row;
+  }
+
+  function showBuild(snapshot) {
+    scenario.view = 'build';
+    renderBuildTab(snapshot);
+    renderBuildCounters(snapshot);
+    buildDiagnostics.replaceChildren(...snapshot.diagnostics.map(renderCollapsedDiagnostic));
+    consolePanelButton.classList.remove('is-active');
+    consolePanelButton.removeAttribute('aria-current');
+    buildPanelButton.classList.add('is-active');
+    buildPanelButton.setAttribute('aria-current', 'page');
+    buildEmpty.hidden = true;
+    consoleView.hidden = true;
+    buildResult.hidden = false;
+    root.dataset.activeBuildId = snapshot.id;
+    setBottomHeight(412);
   }
 
   function setBuilding(active) {
@@ -94,10 +224,28 @@ END_FUNCTION`
     setCompileVisual('active', true);
     showConsole(RUNNING_CONSOLE_LINES);
     setBuilding(true);
+    scenario.completionTimer = window.setTimeout(
+      () => enterCompileComplete(sequence),
+      RUNNING_DELAY_MS
+    );
+  }
+
+  function enterCompileComplete(sequence) {
+    if (sequence !== scenario.sequence || scenario.state !== 'compiling') return;
+    scenario.completionTimer = null;
+    setState('compile-complete');
+    setCompileVisual('default', true);
+    setBuilding(false);
+    createFirstBuildSnapshot();
+    buildPanelButton.classList.add('has-notification');
+    buildPanelButton.removeAttribute('aria-disabled');
+    buildPanelButton.setAttribute('aria-label', 'Сообщения компилятора');
   }
 
   function startCompilation() {
-    if (scenario.state !== 'initial' || scenario.pressTimer !== null) return;
+    if (scenario.state !== 'initial'
+      || scenario.pressTimer !== null
+      || scenario.completionTimer !== null) return;
     scenario.starts += 1;
     scenario.sequence += 1;
     root.dataset.compileStarts = String(scenario.starts);
@@ -231,6 +379,19 @@ END_FUNCTION`
 
   compileButton.addEventListener('click', startCompilation);
 
+  consolePanelButton.addEventListener('click', () => {
+    if (!['compile-complete', 'compiler-messages-build-1'].includes(scenario.state)) return;
+    showConsole(RUNNING_CONSOLE_LINES);
+  });
+
+  buildPanelButton.addEventListener('click', () => {
+    if (!['compile-complete', 'compiler-messages-build-1'].includes(scenario.state)) return;
+    const snapshot = scenario.builds[0];
+    if (!snapshot) return;
+    setState('compiler-messages-build-1');
+    showBuild(snapshot);
+  });
+
   verticalResizer.addEventListener('pointerdown', event => beginDrag(event, 'vertical'));
   horizontalResizer.addEventListener('pointerdown', event => beginDrag(event, 'horizontal'));
 
@@ -254,5 +415,6 @@ END_FUNCTION`
   setCompileVisual('default', false);
   setBuilding(false);
   root.dataset.compileStarts = '0';
+  root.dataset.buildCount = '0';
   renderDocument(activeDocument);
 })();
