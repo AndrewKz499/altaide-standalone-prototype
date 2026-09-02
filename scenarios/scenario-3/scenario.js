@@ -461,7 +461,7 @@ END_FUNCTION`
   }
 
   function showAnalyzer() {
-    if (!scenario.bodyValid || scenario.resultDeclarationValid) return;
+    if (!scenario.bodyValid) return;
 
     const tab = document.createElement('button');
     tab.className = 'is-active';
@@ -477,7 +477,7 @@ END_FUNCTION`
     panelTabs.replaceChildren(tab);
 
     scenario.view = 'analyzer';
-    setState('analyzer-messages-st001');
+    if (!scenario.resultDeclarationValid) setState('analyzer-messages-st001');
     consolePanelButton.classList.remove('is-active');
     consolePanelButton.removeAttribute('aria-current');
     buildPanelButton.classList.remove('is-active');
@@ -487,9 +487,20 @@ END_FUNCTION`
     analyzerPanelButton.setAttribute('aria-current', 'page');
     analyzerPanelButton.classList.remove('has-notification');
 
-    renderBuildCounters({ counters: { error: 1, warning: 0, info: 0 } });
-    buildDiagnostics.replaceChildren(renderAnalyzerDiagnostic());
-    buildDiagnostics.setAttribute('aria-label', 'Сообщения анализатора: одна ошибка ST001');
+    renderBuildCounters({
+      counters: scenario.resultDeclarationValid
+        ? { error: 0, warning: 0, info: 0 }
+        : { error: 1, warning: 0, info: 0 }
+    });
+    buildDiagnostics.replaceChildren(
+      ...(scenario.resultDeclarationValid ? [] : [renderAnalyzerDiagnostic()])
+    );
+    buildDiagnostics.setAttribute(
+      'aria-label',
+      scenario.resultDeclarationValid
+        ? 'Сообщения анализатора: ошибок нет'
+        : 'Сообщения анализатора: одна ошибка ST001'
+    );
     buildPreview.replaceChildren();
     buildPreview.classList.remove('has-content');
     buildPreview.setAttribute('aria-label', 'Предпросмотр кода пуст');
@@ -499,6 +510,7 @@ END_FUNCTION`
     consoleView.hidden = true;
     buildResult.hidden = false;
     setBottomHeight(228);
+    renderDocument(activeDocument);
   }
 
   function getActiveBuildSnapshot() {
@@ -651,6 +663,28 @@ END_FUNCTION`
     sourceCode.replaceChildren(fragment);
   }
 
+  function renderResultDeclarationTarget(source) {
+    const fragment = document.createDocumentFragment();
+    source.replace(/\r\n?/g, '\n').split('\n').forEach((lineText, index) => {
+      const line = document.createElement('span');
+      line.className = 'source-line';
+      line.dataset.editorLine = String(index + 1);
+      if (index === 2 && lineText.trim() === '') {
+        const target = createCodeActionTarget(
+          'declare-result',
+          'Объявите переменную',
+          'Объявить переменную result'
+        );
+        target.classList.add('declaration-code-action');
+        line.append(document.createTextNode('    '), target);
+      } else {
+        appendHighlightedSource(line, lineText, { markUndeclaredResult: true });
+      }
+      fragment.append(line);
+    });
+    sourceCode.replaceChildren(fragment);
+  }
+
   function validateCalculateBody(source) {
     return source.replace(/\r\n?/g, '\n') === CALCULATE_BODY_SOURCE;
   }
@@ -661,6 +695,13 @@ END_FUNCTION`
       && !scenario.bodyValid
       && scenario.state === 'compiler-messages-build-2'
       && scenario.activeBuildId === 'build-2';
+  }
+
+  function canShowResultDeclarationTarget(documentId) {
+    return documentId === 'compute-a'
+      && scenario.bodyValid
+      && !scenario.resultDeclarationValid
+      && scenario.state === 'analyzer-messages-st001';
   }
 
   function getBuildLocation(locationId) {
@@ -685,6 +726,8 @@ END_FUNCTION`
     sourceCode.dataset.source = sourceDocument.source;
     if (canShowCalculateBodyTarget(documentId)) {
       renderCalculateBodyTarget(sourceDocument.source);
+    } else if (canShowResultDeclarationTarget(documentId)) {
+      renderResultDeclarationTarget(sourceDocument.source);
     } else {
       sourceCode.innerHTML = highlightSource(sourceDocument.source, {
         revealConflict,
@@ -720,6 +763,7 @@ END_FUNCTION`
     root.dataset.revealedDiagnosticLocation = scenario.revealedDiagnosticLocation || '';
     root.dataset.renameValid = String(scenario.renameValid);
     root.dataset.bodyValid = String(scenario.bodyValid);
+    root.dataset.resultDeclarationValid = String(scenario.resultDeclarationValid);
     root.dataset.liveAnalyzerProblems = String(scenario.liveAnalyzerDiagnostics.length);
     if (revealConflict) {
       const codeCanvas = sourceCode.closest('.code-canvas');
@@ -744,9 +788,34 @@ END_FUNCTION`
     renderDocument('compute-a');
   }
 
+  function applyResultDeclaration() {
+    if (!canShowResultDeclarationTarget(activeDocument)) return;
+
+    const documentData = sourceDocuments['compute-a'];
+    const lines = documentData.source.replace(/\r\n?/g, '\n').split('\n');
+    if (lines[2]?.trim() !== '') return;
+    lines[2] = '    result : INT;';
+    documentData.source = lines.join('\n');
+    scenario.resultDeclarationValid = /\bVAR_INPUT\b\s*\n\s*result\s*:\s*INT\s*;/m
+      .test(documentData.source);
+    if (!scenario.resultDeclarationValid) return;
+
+    scenario.dirty = true;
+    scenario.liveAnalyzerDiagnostics = [];
+    setState('result-declaration-fixed');
+    analyzerPanelButton.classList.remove('has-notification');
+    setCompileVisual('default', false);
+    renderDocument('compute-a');
+    showAnalyzer();
+  }
+
   function isBuildHistoryState() {
     return scenario.state.startsWith('compiler-messages-build-')
-      || ['calculate-body-with-undeclared-result', 'analyzer-messages-st001'].includes(scenario.state);
+      || [
+        'calculate-body-with-undeclared-result',
+        'analyzer-messages-st001',
+        'result-declaration-fixed'
+      ].includes(scenario.state);
   }
 
   function navigateToBuildLocation(locationId) {
@@ -886,7 +955,8 @@ END_FUNCTION`
       'compile-complete-build-2',
       'compiler-messages-build-2',
       'calculate-body-with-undeclared-result',
-      'analyzer-messages-st001'
+      'analyzer-messages-st001',
+      'result-declaration-fixed'
     ].includes(scenario.state)) return;
     showConsole(RUNNING_CONSOLE_LINES);
   });
@@ -900,7 +970,8 @@ END_FUNCTION`
       'compile-complete-build-2',
       'compiler-messages-build-2',
       'calculate-body-with-undeclared-result',
-      'analyzer-messages-st001'
+      'analyzer-messages-st001',
+      'result-declaration-fixed'
     ].includes(scenario.state)) return;
     const snapshot = scenario.builds.at(-1);
     if (!snapshot) return;
@@ -946,6 +1017,7 @@ END_FUNCTION`
     event.preventDefault();
     if (target.dataset.codeAction === 'rename-function') applyFunctionRename();
     else if (target.dataset.codeAction === 'insert-calculate-body') applyCalculateBody();
+    else if (target.dataset.codeAction === 'declare-result') applyResultDeclaration();
   });
 
   verticalResizer.addEventListener('pointerdown', event => beginDrag(event, 'vertical'));
