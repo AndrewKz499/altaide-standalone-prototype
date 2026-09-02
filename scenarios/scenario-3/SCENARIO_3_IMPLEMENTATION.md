@@ -20,9 +20,9 @@
 6. Rename → Compile → Console/progress → immutable Build #2 (`23.06.2026 15:55`) without name-conflict diagnostics; Build #1 remains selectable and unchanged.
 7. Build #2 → live `calculate` document → click `Вставьте код` → canonical body appears; live Analyzer reports ST001 while Build #1 and Build #2 remain unchanged.
 8. Analyzer ST001 → click `Объявите переменную` → `result : INT;` appears in live source; Analyzer clears immediately while Build history remains unchanged.
+9. Declared live source → Compile → Console/progress → immutable clean Build #3 (`23.06.2026 15:58`); Build #1 and Build #2 remain selectable and unchanged.
 
 ## Remaining flow
 
-9. Final Compile → successful Build #3.
 10. Verify build-history selection, counters, timestamps, diagnostics, and immutable previews.
 11. Final regression of the complete Scenario 3 flow.

@@ -33,6 +33,7 @@
   const RUNNING_DELAY_MS = 3200;
   const BUILD_1_TIMESTAMP = '23.06.2026 15:43';
   const BUILD_2_TIMESTAMP = '23.06.2026 15:55';
+  const BUILD_3_TIMESTAMP = '23.06.2026 15:58';
   const CALCULATE_BODY_SOURCE = `FUNCTION calculate : DINT
 VAR_INPUT
 
@@ -193,6 +194,25 @@ END_FUNCTION`
     const snapshot = Object.freeze({
       id: 'build-2',
       timestamp: BUILD_2_TIMESTAMP,
+      counters: Object.freeze({ error: 0, warning: 0, info: 0 }),
+      diagnostics: Object.freeze([]),
+      sourceSnapshot
+    });
+    scenario.builds.push(snapshot);
+    updateBuildSnapshotState();
+    return snapshot;
+  }
+
+  function createThirdBuildSnapshot() {
+    const existing = scenario.builds.find(snapshot => snapshot.id === 'build-3');
+    if (existing) return existing;
+
+    const sourceSnapshot = Object.freeze(Object.fromEntries(
+      Object.entries(sourceDocuments).map(([id, documentData]) => [id, documentData.source])
+    ));
+    const snapshot = Object.freeze({
+      id: 'build-3',
+      timestamp: BUILD_3_TIMESTAMP,
       counters: Object.freeze({ error: 0, warning: 0, info: 0 }),
       diagnostics: Object.freeze([]),
       sourceSnapshot
@@ -430,6 +450,7 @@ END_FUNCTION`
     consoleView.hidden = true;
     buildResult.hidden = false;
     root.dataset.activeBuildId = snapshot.id;
+    root.dataset.activeBuildSnapshotSource = snapshot.sourceSnapshot['compute-a'] || '';
     setBottomHeight(412);
   }
 
@@ -524,12 +545,18 @@ END_FUNCTION`
   }
 
   function enterCompiling(sequence) {
-    const expectedState = scenario.pendingBuildId === 'build-2'
-      ? 'compile-pressed-build-2'
-      : 'compile-pressed';
+    const expectedState = scenario.pendingBuildId === 'build-3'
+      ? 'compile-pressed-build-3'
+      : scenario.pendingBuildId === 'build-2'
+        ? 'compile-pressed-build-2'
+        : 'compile-pressed';
     if (sequence !== scenario.sequence || scenario.state !== expectedState) return;
     scenario.pressTimer = null;
-    setState(scenario.pendingBuildId === 'build-2' ? 'compiling-build-2' : 'compiling');
+    setState(scenario.pendingBuildId === 'build-3'
+      ? 'compiling-build-3'
+      : scenario.pendingBuildId === 'build-2'
+        ? 'compiling-build-2'
+        : 'compiling');
     setCompileVisual('active', true);
     showConsole(RUNNING_CONSOLE_LINES);
     setBuilding(true);
@@ -541,13 +568,22 @@ END_FUNCTION`
 
   function enterCompileComplete(sequence) {
     const buildId = scenario.pendingBuildId;
-    const expectedState = buildId === 'build-2' ? 'compiling-build-2' : 'compiling';
+    const expectedState = buildId === 'build-3'
+      ? 'compiling-build-3'
+      : buildId === 'build-2'
+        ? 'compiling-build-2'
+        : 'compiling';
     if (sequence !== scenario.sequence || scenario.state !== expectedState) return;
     scenario.completionTimer = null;
-    setState(buildId === 'build-2' ? 'compile-complete-build-2' : 'compile-complete');
+    setState(buildId === 'build-3'
+      ? 'compile-complete-build-3'
+      : buildId === 'build-2'
+        ? 'compile-complete-build-2'
+        : 'compile-complete');
     setCompileVisual('default', true);
     setBuilding(false);
-    if (buildId === 'build-2') createSecondBuildSnapshot();
+    if (buildId === 'build-3') createThirdBuildSnapshot();
+    else if (buildId === 'build-2') createSecondBuildSnapshot();
     else createFirstBuildSnapshot();
     scenario.pendingBuildId = null;
     buildPanelButton.classList.add('has-notification');
@@ -560,14 +596,26 @@ END_FUNCTION`
     const isSecondBuild = scenario.state === 'compiler-messages-build-1'
       && scenario.renameValid
       && scenario.builds.length === 1;
-    if ((!isFirstBuild && !isSecondBuild)
+    const isThirdBuild = scenario.state === 'result-declaration-fixed'
+      && scenario.resultDeclarationValid
+      && scenario.liveAnalyzerDiagnostics.length === 0
+      && scenario.builds.length === 2;
+    if ((!isFirstBuild && !isSecondBuild && !isThirdBuild)
       || scenario.pressTimer !== null
       || scenario.completionTimer !== null) return;
-    scenario.pendingBuildId = isSecondBuild ? 'build-2' : 'build-1';
+    scenario.pendingBuildId = isThirdBuild
+      ? 'build-3'
+      : isSecondBuild
+        ? 'build-2'
+        : 'build-1';
     scenario.starts += 1;
     scenario.sequence += 1;
     root.dataset.compileStarts = String(scenario.starts);
-    setState(isSecondBuild ? 'compile-pressed-build-2' : 'compile-pressed');
+    setState(isThirdBuild
+      ? 'compile-pressed-build-3'
+      : isSecondBuild
+        ? 'compile-pressed-build-2'
+        : 'compile-pressed');
     setCompileVisual('pressed', true);
     showConsole([]);
     setBuilding(false);
@@ -956,7 +1004,9 @@ END_FUNCTION`
       'compiler-messages-build-2',
       'calculate-body-with-undeclared-result',
       'analyzer-messages-st001',
-      'result-declaration-fixed'
+      'result-declaration-fixed',
+      'compile-complete-build-3',
+      'compiler-messages-build-3'
     ].includes(scenario.state)) return;
     showConsole(RUNNING_CONSOLE_LINES);
   });
@@ -971,11 +1021,15 @@ END_FUNCTION`
       'compiler-messages-build-2',
       'calculate-body-with-undeclared-result',
       'analyzer-messages-st001',
-      'result-declaration-fixed'
+      'result-declaration-fixed',
+      'compile-complete-build-3',
+      'compiler-messages-build-3'
     ].includes(scenario.state)) return;
     const snapshot = scenario.builds.at(-1);
     if (!snapshot) return;
-    if (!scenario.bodyValid) {
+    if (snapshot.id === 'build-3' && scenario.state === 'compile-complete-build-3') {
+      setState('compiler-messages-build-3');
+    } else if (!scenario.bodyValid) {
       setState(snapshot.id === 'build-2'
         ? 'compiler-messages-build-2'
         : 'compiler-messages-build-1');
