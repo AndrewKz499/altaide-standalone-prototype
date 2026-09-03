@@ -1,0 +1,161 @@
+:root {
+  --bottom-panel-height: 260px;
+  --statusbar-height: 0px;
+}
+
+.ide[aria-label="AltaIDE, Scenario 4"] .statusbar { display: none; }
+
+.scenario-4-build-panel .vertical-tabs button { cursor: default; }
+.scenario-4-build-panel .vertical-tabs button:not(.is-active):hover { background: transparent; }
+
+.scenario-4-build-content {
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: 40px 33px minmax(0, 1fr);
+  overflow: hidden;
+  background: var(--gray-14);
+}
+
+.scenario-4-build-tabs button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-inline: 14px;
+}
+
+.scenario-4-build-tabs button > img {
+  width: 20px;
+  height: 20px;
+  display: block;
+  object-fit: contain;
+}
+
+.scenario-4-build-toolbar { border-top: 0; }
+
+.scenario-4-counters {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.scenario-4-counter {
+  height: 20px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 4px;
+  border-radius: 4px;
+  background: var(--gray-11);
+  color: #fff;
+  font-size: 12px;
+  line-height: 20px;
+}
+
+.scenario-4-counter img {
+  width: 14px;
+  height: 14px;
+  display: block;
+  object-fit: contain;
+}
+
+.scenario-4-result-body {
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 707px) 16px minmax(0, 1fr);
+  overflow: hidden;
+  background: var(--gray-14);
+}
+
+.scenario-4-diagnostics,
+.scenario-4-preview {
+  min-width: 0;
+  min-height: 0;
+  background: var(--gray-14);
+}
+
+.scenario-4-diagnostics {
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-top: 2px;
+  scrollbar-width: thin;
+  scrollbar-color: #7d8394 var(--gray-12);
+}
+
+.scenario-4-preview-resizer {
+  display: grid;
+  place-items: center;
+  border-inline: 1px solid var(--gray-13);
+  background: var(--gray-14);
+}
+
+.scenario-4-preview-resizer span {
+  width: 4px;
+  height: 4px;
+  border-inline: 1px solid var(--gray-9);
+}
+
+.scenario-4-diagnostic-row {
+  width: 707px;
+  max-width: 100%;
+  min-width: 650px;
+  height: 22px;
+  display: grid;
+  grid-template-columns: 44px 66px minmax(0, 1fr) 104px;
+  align-items: center;
+  gap: 10px;
+  color: var(--gray-7);
+  font-size: 12px;
+  line-height: 16px;
+}
+
+.scenario-4-diagnostic-leading {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+}
+
+.scenario-4-diagnostic-leading img {
+  width: 20px;
+  height: 20px;
+  display: block;
+  object-fit: contain;
+}
+
+.scenario-4-disclosure {
+  width: 20px;
+  height: 20px;
+  position: relative;
+  flex: 0 0 20px;
+}
+
+.scenario-4-disclosure::before {
+  content: "";
+  position: absolute;
+  left: 5px;
+  top: 6px;
+  width: 6px;
+  height: 6px;
+  border-right: 1px solid var(--gray-7);
+  border-bottom: 1px solid var(--gray-7);
+  transform: rotate(-45deg);
+}
+
+.scenario-4-disclosure-spacer { width: 20px; height: 20px; flex: 0 0 20px; }
+.scenario-4-diagnostic-code,
+.scenario-4-diagnostic-description,
+.scenario-4-diagnostic-location { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.scenario-4-diagnostic-location { color: #5684dd; }
+.scenario-4-diagnostic-location em { margin-left: 8px; color: var(--gray-7); font-style: normal; }
+
+.ide[aria-label="AltaIDE, Scenario 4"] .source-code .scenario-4-undeclared {
+  text-decoration: underline wavy #ef5475;
+  text-underline-offset: 3px;
+}
+
+@media (max-width: 1100px) {
+  .menubar { gap: 10px; overflow-x: auto; scrollbar-width: none; }
+  .menu-links button { padding-inline: 12px; }
+}

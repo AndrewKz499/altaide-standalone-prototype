@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <base href="../../">
+  <title>AltaIDE — Scenario 4 · S01</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="prototype.css?v=9">
+  <link rel="stylesheet" href="scenarios/scenario-4/scenario.css?v=1">
+</head>
+<body>
+  <main class="ide" aria-label="AltaIDE, Scenario 4">
+    <header class="topbar" aria-label="Верхняя панель">
+      <nav class="menubar" aria-label="Главное меню">
+        <img class="alta-logo" src="assets/icons/brand-alta-logo.svg" alt="Alta">
+        <div class="menu-links">
+          <button type="button">Файл</button><button type="button">Правка</button><button type="button">Вид</button>
+          <button type="button">Библиотеки</button><button type="button">Компиляция</button><button type="button">Онлайн</button>
+          <button type="button">Отладка</button><button type="button">Инструменты</button><button type="button">Окно</button><button type="button">Справка</button>
+        </div>
+      </nav>
+      <div class="toolbar" role="toolbar" aria-label="Инструменты проекта"><div class="toolbar-group">
+        <button class="icon-button" type="button" aria-label="Создать проект"><img src="assets/icons/toolbar-create-project.svg" alt=""></button>
+        <button class="icon-button" type="button" aria-label="Открыть проект"><img src="assets/icons/toolbar-open-project.svg" alt=""></button>
+        <button class="icon-button" type="button" aria-label="Сохранить проект"><img src="assets/icons/toolbar-save-project.svg" alt=""></button>
+        <span class="toolbar-divider"></span><button class="icon-button" type="button" aria-label="Добавить устройство"><img src="assets/icons/toolbar-add-device.svg" alt=""></button>
+        <span class="toolbar-divider"></span><button class="icon-button" type="button" aria-label="Компилировать"><img src="assets/icons/toolbar-compile.svg" alt=""></button>
+        <span class="toolbar-divider"></span><button class="icon-button" type="button" aria-label="Подключиться"><img src="assets/icons/toolbar-connect.svg" alt=""></button>
+        <button class="icon-button" type="button" aria-label="Загрузить в устройство"><img src="assets/icons/toolbar-load-to-device.svg" alt=""></button>
+        <button class="icon-button run-button" type="button" aria-label="Запустить"><img src="assets/icons/toolbar-run.svg" alt=""></button>
+        <span class="toolbar-divider"></span><button class="icon-button" type="button" aria-label="Отладка"><img src="assets/icons/toolbar-debug.svg" alt=""></button><span class="toolbar-divider"></span>
+      </div></div>
+    </header>
+
+    <div class="workspace">
+      <aside class="sidebar" aria-label="Структура проекта">
+        <div class="project-head"><div class="project-title"><span>Новый проект</span><button type="button" aria-label="Настройки проекта"><img src="assets/icons/sidebar-settings.svg" alt=""></button></div><div class="project-actions">
+          <button type="button" aria-label="Информация"><img src="assets/icons/sidebar-info.svg" alt=""></button><button type="button" aria-label="Развернуть всё"><img src="assets/icons/sidebar-expand-all.svg" alt=""></button><button type="button" aria-label="Свернуть всё"><img src="assets/icons/sidebar-collapse-all.svg" alt=""></button><button type="button" aria-label="Поиск"><img src="assets/icons/sidebar-search.svg" alt=""></button>
+        </div></div>
+        <div class="tree" role="tree" aria-label="Дерево проекта">
+          <button class="tree-row" style="--level:0" type="button"><img class="chevron" src="assets/icons/tree-chevron-expanded.svg" alt=""><img class="tree-icon" src="assets/icons/tree-plc.svg" alt=""><span>Устройство (ПЛК)</span></button>
+          <button class="tree-row" style="--level:1" type="button"><img class="chevron" src="assets/icons/tree-chevron-expanded.svg" alt=""><img class="tree-icon" src="assets/icons/tree-pou-folder.svg" alt=""><span>Программные блоки (POU)</span></button>
+          <button class="tree-row" style="--level:2" type="button"><img class="chevron" src="assets/icons/tree-chevron-expanded.svg" alt=""><img class="tree-icon" src="assets/icons/tree-folder.svg" alt=""><span>Новая папка</span></button>
+          <button class="tree-row is-selected has-diagnostic" style="--level:4" type="button" data-tree-document="calculate"><span class="chevron-spacer"></span><img class="tree-icon" src="assets/icons/tree-function-block.svg" alt=""><span>calculate</span><em>FB</em></button>
+          <button class="tree-row has-diagnostic" style="--level:3" type="button" data-tree-document="compute"><span class="chevron-spacer"></span><img class="tree-icon" src="assets/icons/tree-function-block.svg" alt=""><span>compute</span><em>FB</em></button>
+          <button class="tree-row" style="--level:3" type="button"><span class="chevron-spacer"></span><img class="tree-icon" src="assets/icons/tree-function-block.svg" alt=""><span>FB</span><em>FB</em></button>
+          <button class="tree-row text-only" style="--level:4" type="button"><span class="chevron-spacer"></span><span class="tree-icon"></span><span>FUN</span><em>FUN</em></button>
+          <button class="tree-row" style="--level:1" type="button"><img class="chevron" src="assets/icons/tree-chevron-expanded.svg" alt=""><img class="tree-icon" src="assets/icons/tree-task-manager-folder.svg" alt=""><span>Менеджер задач</span></button>
+          <button class="tree-row" style="--level:3" type="button"><span class="chevron-spacer"></span><img class="tree-icon" src="assets/icons/tree-cycle-task.svg" alt=""><span>CYCLE_TASK</span><em>CYCLE</em></button>
+          <button class="tree-row" style="--level:3" type="button"><span class="chevron-spacer"></span><img class="tree-icon" src="assets/icons/tree-cycle-task.svg" alt=""><span>CYCLE_TASK_1</span><em>CYCLE</em></button>
+          <button class="tree-row" style="--level:3" type="button"><span class="chevron-spacer"></span><img class="tree-icon" src="assets/icons/tree-event-task.svg" alt=""><span>TRIGGER_TASK</span><em>TRIGGER</em></button>
+          <button class="tree-row" style="--level:1" type="button"><img class="chevron" src="assets/icons/tree-chevron-expanded.svg" alt=""><img class="tree-icon" src="assets/icons/tree-variable-list-folder.svg" alt=""><span>Списки переменных</span></button>
+          <button class="tree-row" style="--level:3" type="button"><span class="chevron-spacer"></span><img class="tree-icon" src="assets/icons/tree-global-variable.svg" alt=""><span>GLV</span><em>GVL</em></button>
+          <button class="tree-row" style="--level:3" type="button"><span class="chevron-spacer"></span><img class="tree-icon" src="assets/icons/tree-global-variable.svg" alt=""><span>GLV_1</span><em>GVL</em></button>
+          <button class="tree-row" style="--level:3" type="button"><span class="chevron-spacer"></span><img class="tree-icon" src="assets/icons/tree-global-variable.svg" alt=""><span>GLV_2</span><em>GVL</em></button>
+          <button class="tree-row" style="--level:3" type="button"><span class="chevron-spacer"></span><img class="tree-icon" src="assets/icons/tree-global-variable.svg" alt=""><span>GLV_3</span><em>GVL</em></button>
+          <button class="tree-row" style="--level:3" type="button"><span class="chevron-spacer"></span><img class="tree-icon" src="assets/icons/tree-global-variable.svg" alt=""><span>GLV_4</span><em>GVL</em></button>
+          <button class="tree-row" style="--level:1" type="button"><img class="chevron" src="assets/icons/tree-chevron-expanded.svg" alt=""><img class="tree-icon" src="assets/icons/tree-user-types-folder.svg" alt=""><span>Типы (пользовательские переменные)</span></button>
+          <button class="tree-row" style="--level:3" type="button"><span class="chevron-spacer"></span><img class="tree-icon" src="assets/icons/tree-user-type.svg" alt=""><span>ALIAS</span><em>ALIAS</em></button>
+          <button class="tree-row" style="--level:3" type="button"><span class="chevron-spacer"></span><img class="tree-icon" src="assets/icons/tree-user-type.svg" alt=""><span>ENUM</span><em>ENUM</em></button>
+          <button class="tree-row" style="--level:3" type="button"><span class="chevron-spacer"></span><img class="tree-icon" src="assets/icons/tree-user-type.svg" alt=""><span>STRUCT</span><em>STRUCT</em></button>
+          <button class="tree-row" style="--level:3" type="button"><span class="chevron-spacer"></span><img class="tree-icon" src="assets/icons/tree-user-type.svg" alt=""><span>UNION</span><em>UNION</em></button>
+          <button class="tree-row" style="--level:3" type="button"><span class="chevron-spacer"></span><img class="tree-icon" src="assets/icons/tree-user-type.svg" alt=""><span>UNION_1</span><em>UNION</em></button>
+          <button class="tree-row" style="--level:3" type="button"><span class="chevron-spacer"></span><img class="tree-icon" src="assets/icons/tree-user-type.svg" alt=""><span>UNION_2</span><em>UNION</em></button>
+        </div>
+      </aside>
+      <div class="resizer resizer-vertical" id="vertical-resizer" role="separator" aria-label="Изменить ширину панели проекта" aria-orientation="vertical" tabindex="0"><span></span></div>
+      <section class="content-area" aria-label="Рабочая область">
+        <div class="editor-tabs" role="tablist" aria-label="Открытые программы">
+          <button class="editor-tab" type="button" role="tab" aria-selected="false" data-editor-tab="compute"><img src="assets/icons/tree-function-block.svg" alt=""><span>compute</span><span class="tab-close"></span></button>
+          <button class="editor-tab is-active" type="button" role="tab" aria-selected="true" data-editor-tab="calculate"><img src="assets/icons/tree-function-block.svg" alt=""><span>calculate</span><span class="tab-close"></span></button>
+        </div>
+        <div class="content-split" id="content-split">
+          <section class="code-canvas" aria-label="Редактор кода"><div class="code-lines" aria-hidden="true"></div><pre class="source-code"><code data-source-code></code></pre></section>
+          <div class="resizer resizer-horizontal" id="horizontal-resizer" role="separator" aria-label="Изменить высоту нижней панели" aria-orientation="horizontal" tabindex="0"><span></span></div>
+          <section class="bottom-panel scenario-4-build-panel" aria-label="Нижняя панель">
+            <nav class="vertical-tabs" aria-label="Разделы нижней панели">
+              <button type="button" aria-label="Консоль"><img src="assets/icons/panel-log.svg" alt=""></button>
+              <button class="has-notification" type="button" aria-label="Сообщения анализатора"><img src="assets/icons/panel-messages.svg" alt=""></button>
+              <button class="is-active has-notification" type="button" aria-label="Сборка" aria-current="page"><img src="scenarios/scenario-3/build-console.svg" alt=""></button>
+              <button type="button" aria-label="Переменные"><img src="assets/icons/panel-variables.svg" alt=""></button>
+            </nav>
+            <div class="scenario-4-build-content">
+              <div class="bottom-tabs scenario-4-build-tabs" role="tablist"><button class="is-active" type="button" role="tab" aria-selected="true"><img src="scenarios/scenario-3/build-console.svg" alt=""><span>Сборка 23.06.2026 15:43</span></button></div>
+              <div class="context-toolbar scenario-4-build-toolbar" role="toolbar" aria-label="Счётчики сборки">
+                <div class="scenario-4-counters"><span class="scenario-4-counter" data-counter="error"><img src="assets/icons/status-error.svg" alt=""><span>11</span></span><span class="scenario-4-counter" data-counter="warning"><img src="assets/icons/status-warning.svg" alt=""><span>2</span></span><span class="scenario-4-counter" data-counter="info"><img src="assets/icons/status-info.svg" alt=""><span>1</span></span></div>
+                <button class="context-more" type="button" aria-label="Дополнительные действия"><img src="assets/icons/context-more.svg" alt=""></button>
+              </div>
+              <div class="scenario-4-result-body">
+                <div class="scenario-4-diagnostics" data-diagnostics aria-label="Диагностики сборки"></div>
+                <div class="scenario-4-preview-resizer" aria-hidden="true"><span></span></div>
+                <div class="scenario-4-preview" aria-label="Предпросмотр кода пуст"></div>
+              </div>
+            </div>
+          </section>
+        </div>
+      </section>
+    </div>
+    <footer class="statusbar" aria-hidden="true"></footer>
+  </main>
+  <script src="scenarios/scenario-4/scenario.js?v=1"></script>
+</body>
+</html>
