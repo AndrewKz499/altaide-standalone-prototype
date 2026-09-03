@@ -9,6 +9,7 @@
   const sourceCode = document.querySelector('[data-source-code]');
   const lineNumbers = document.querySelector('.code-lines');
   const diagnosticsRoot = document.querySelector('[data-diagnostics]');
+  const previewRoot = document.querySelector('.scenario-4-preview');
 
   const sourceDocuments = {
     compute: {
@@ -30,10 +31,17 @@
     { kind: 'error', code: 'FB402', description: 'Блок ValveController вызван как функция с возвращаемым значением', file: 'compute.st', line: ':15', disclosure: true },
     { kind: 'info', code: 'ARR501', description: 'Индекс массива sensors[8] вне диапазона 0..7', file: 'compute.st', line: ':13' },
     { kind: 'error', code: 'DIV601', description: 'Обнаружено деление на ноль в константном выражении', file: 'compute.st', line: ':6' },
-    { kind: 'error', code: 'RET701', description: 'Функция Normalize не возвращает значение на всех ветках', file: 'func.st', line: ':27' }
+    { kind: 'error', code: 'RET701', description: 'Функция Normalize не возвращает значение на всех ветках', file: 'func.st', line: ':27' },
+    { kind: 'error', code: 'CFG801', description: 'Период задачи FST должен быть больше 0 мсекунд', file: 'task.cfg', line: ':3' },
+    { kind: 'error', code: 'LIB901', description: 'Версия библиотеки MotionLib несовместима с проектом', file: 'libs.cfg', line: ':1' },
+    { kind: 'error', code: 'IO902', description: 'Адрес %QX0.3 уже назначен другому выходу', file: 'io.st', line: ':41' },
+    { kind: 'error', code: 'PRG903', description: 'Программа Main не назначена ни одной задаче', file: 'boot.cfg', line: ':5' },
+    { kind: 'error', code: 'CMP101', description: 'После IF ожидается THEN, найден идентификатор pumpReady', file: 'main.st', line: ':7' }
   ]);
 
   let activeDocumentId = 'calculate';
+  const activeFilters = new Set();
+  let selectedDiagnosticCode = null;
 
   function highlight(source) {
     const escape = value => value.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
@@ -62,12 +70,36 @@
     root.dataset.activeDocumentId = activeDocumentId;
   }
 
+  function renderPreview() {
+    previewRoot.replaceChildren();
+    previewRoot.classList.toggle('has-content', selectedDiagnosticCode === 'CFG801');
+    previewRoot.setAttribute('aria-label', selectedDiagnosticCode === 'CFG801' ? 'Предпросмотр CFG801' : 'Предпросмотр кода пуст');
+    if (selectedDiagnosticCode !== 'CFG801') return;
+
+    const heading = document.createElement('div');
+    heading.className = 'scenario-4-preview-heading';
+    heading.textContent = 'task.cfg';
+    const code = document.createElement('pre');
+    code.className = 'scenario-4-preview-code';
+    code.innerHTML = '<span><em>1</em><code><b>TASK</b> FST (</code></span>'
+      + '<span class="is-problem"><em>2</em><code>    INTERVAL := T#0ms,</code></span>'
+      + '<span><em>3</em><code>    PRIORITY := 1</code></span>'
+      + '<span><em>4</em><code>);</code></span>';
+    previewRoot.append(heading, code);
+  }
+
   function renderDiagnostics() {
-    diagnosticsRoot.replaceChildren(...diagnostics.map(item => {
-      const row = document.createElement('div');
+    const visibleDiagnostics = activeFilters.size === 0
+      ? diagnostics
+      : diagnostics.filter(item => activeFilters.has(item.kind));
+    diagnosticsRoot.replaceChildren(...visibleDiagnostics.map(item => {
+      const row = document.createElement('button');
+      row.type = 'button';
       row.className = 'scenario-4-diagnostic-row';
       row.dataset.kind = item.kind;
       row.dataset.code = item.code;
+      row.classList.toggle('is-selected', item.code === selectedDiagnosticCode);
+      row.setAttribute('aria-pressed', String(item.code === selectedDiagnosticCode));
       const leading = document.createElement('span');
       leading.className = 'scenario-4-diagnostic-leading';
       const disclosure = document.createElement('span');
@@ -89,8 +121,21 @@
       line.textContent = item.line;
       location.append(line);
       row.append(leading, code, description, location);
+      row.addEventListener('click', () => {
+        selectedDiagnosticCode = item.code;
+        renderDiagnostics();
+        renderPreview();
+      });
       return row;
     }));
+    document.querySelectorAll('[data-counter]').forEach(counter => {
+      const active = activeFilters.has(counter.dataset.counter);
+      counter.classList.toggle('is-active', active);
+      counter.setAttribute('aria-pressed', String(active));
+    });
+    root.dataset.filtersApplied = String(activeFilters.size > 0);
+    root.dataset.activeFilters = [...activeFilters].join(',');
+    root.dataset.visibleDiagnosticRows = String(visibleDiagnostics.length);
   }
 
   function setupResizer(handle, axis) {
@@ -123,16 +168,21 @@
     activeDocumentId = row.dataset.treeDocument;
     renderDocument();
   }));
+  document.querySelectorAll('[data-counter]').forEach(counter => counter.addEventListener('click', () => {
+    const kind = counter.dataset.counter;
+    if (activeFilters.has(kind)) activeFilters.delete(kind);
+    else activeFilters.add(kind);
+    renderDiagnostics();
+  }));
 
   for (let i = 1; i <= 25; i += 1) lineNumbers.append(Object.assign(document.createElement('span'), { textContent: String(i) }));
   setupResizer(verticalResizer, 'vertical');
   setupResizer(horizontalResizer, 'horizontal');
   renderDocument();
   renderDiagnostics();
+  renderPreview();
   root.dataset.scenarioStep = 'initial';
   root.dataset.errorCount = '11';
   root.dataset.warningCount = '2';
   root.dataset.infoCount = '1';
-  root.dataset.filtersApplied = 'false';
-  root.dataset.visibleDiagnosticRows = String(diagnostics.length);
 })();
