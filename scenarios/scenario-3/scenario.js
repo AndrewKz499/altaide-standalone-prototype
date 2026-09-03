@@ -434,10 +434,12 @@ END_FUNCTION`
   function showBuild(snapshot) {
     scenario.view = 'build';
     scenario.activeBuildId = snapshot.id;
+    const isHistoricalBuild = snapshot.id !== scenario.builds.at(-1)?.id;
     renderBuildTabs(snapshot);
     renderBuildCounters(snapshot);
     renderBuildDiagnostics(snapshot);
     buildResult.dataset.resultView = 'build';
+    buildResult.classList.toggle('is-historical-build', isHistoricalBuild);
     buildResult.setAttribute('aria-label', 'Результат сборки');
     buildDiagnostics.setAttribute('aria-label', 'Сообщения компилятора');
     consolePanelButton.classList.remove('is-active');
@@ -450,6 +452,7 @@ END_FUNCTION`
     consoleView.hidden = true;
     buildResult.hidden = false;
     root.dataset.activeBuildId = snapshot.id;
+    root.dataset.activeBuildHistorical = String(isHistoricalBuild);
     root.dataset.activeBuildSnapshotSource = snapshot.sourceSnapshot['compute-a'] || '';
     if (snapshot.id === 'build-2' && scenario.state === 'compiler-messages-build-2') {
       renderDocument(activeDocument);

@@ -257,6 +257,51 @@
   outline: 0;
 }
 
+.build-result.is-historical-build .build-diagnostic-row {
+  color: var(--gray-9);
+}
+
+.build-result.is-historical-build .build-diagnostic-row.is-selected,
+.build-result.is-historical-build .build-preview-source-line.has-conflict {
+  background: transparent;
+}
+
+.build-result.is-historical-build .build-diagnostic-leading img {
+  filter: grayscale(1);
+  opacity: .45;
+}
+
+.build-result.is-historical-build .build-counter {
+  background: var(--gray-12);
+  color: var(--gray-9);
+}
+
+.build-result.is-historical-build .build-counter img {
+  filter: grayscale(1);
+  opacity: .45;
+}
+
+.build-result.is-historical-build .build-diagnostic-disclosure::before {
+  border-color: var(--gray-9);
+}
+
+.build-result.is-historical-build .build-diagnostic-location,
+.build-result.is-historical-build .build-diagnostic-location em,
+.build-result.is-historical-build .build-preview-output,
+.build-result.is-historical-build .build-preview-message code,
+.build-result.is-historical-build .build-preview-path,
+.build-result.is-historical-build .build-preview-line-number,
+.build-result.is-historical-build .build-preview-line-marker,
+.build-result.is-historical-build .build-preview-conflict,
+.build-result.is-historical-build .build-preview-source-line code,
+.build-result.is-historical-build .build-preview-source-line .kw,
+.build-result.is-historical-build .build-preview-source-line .type,
+.build-result.is-historical-build .build-preview-source-line .name,
+.build-result.is-historical-build .build-preview-source-line .op,
+.build-result.is-historical-build .build-preview-source-line .num {
+  color: var(--gray-9);
+}
+
 .analyzer-diagnostic-location {
   min-width: 0;
   overflow: hidden;
