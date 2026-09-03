@@ -10,6 +10,12 @@
   const lineNumbers = document.querySelector('.code-lines');
   const diagnosticsRoot = document.querySelector('[data-diagnostics]');
   const previewRoot = document.querySelector('.scenario-4-preview');
+  const resultBody = document.querySelector('.scenario-4-result-body');
+  const panelTab = document.querySelector('[data-build-tab]');
+  const panelTabIcon = panelTab.querySelector('img');
+  const panelTabLabel = panelTab.querySelector('span');
+  const buildPanelButton = document.querySelector('[data-panel="build"]');
+  const analyzerPanelButton = document.querySelector('[data-panel="analyzer"]');
 
   const sourceDocuments = {
     compute: {
@@ -42,6 +48,7 @@
   let activeDocumentId = 'calculate';
   const activeFilters = new Set();
   let selectedDiagnosticCode = null;
+  let activePanel = 'build';
 
   function highlight(source) {
     const escape = value => value.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
@@ -88,6 +95,86 @@
     previewRoot.append(heading, code);
   }
 
+  function setCounter(counter, value, disabled) {
+    const labels = { error: 'Ошибки', warning: 'Предупреждения', info: 'Информационные сообщения' };
+    counter.querySelector('span').textContent = String(value);
+    counter.setAttribute('aria-label', `${labels[counter.dataset.counter]}: ${value}`);
+    counter.disabled = disabled;
+  }
+
+  function renderBuildCounters() {
+    const counts = { error: 11, warning: 2, info: 1 };
+    document.querySelectorAll('[data-counter]').forEach(counter => {
+      setCounter(counter, counts[counter.dataset.counter], false);
+      const active = activeFilters.has(counter.dataset.counter);
+      counter.classList.toggle('is-active', active);
+      counter.setAttribute('aria-pressed', String(active));
+    });
+  }
+
+  function renderAnalyzer() {
+    activePanel = 'analyzer';
+    buildPanelButton.classList.remove('is-active');
+    buildPanelButton.removeAttribute('aria-current');
+    analyzerPanelButton.classList.add('is-active');
+    analyzerPanelButton.setAttribute('aria-current', 'page');
+    panelTabIcon.src = 'assets/icons/panel-messages.svg';
+    panelTabLabel.textContent = 'Сообщения анализатора';
+    resultBody.dataset.resultView = 'analyzer';
+    diagnosticsRoot.setAttribute('aria-label', 'Сообщения анализатора: одна ошибка ST001');
+
+    document.querySelectorAll('[data-counter]').forEach(counter => {
+      setCounter(counter, counter.dataset.counter === 'error' ? 1 : 0, true);
+      counter.classList.remove('is-active');
+      counter.setAttribute('aria-pressed', 'false');
+    });
+
+    const diagnostic = document.createElement('div');
+    diagnostic.className = 'scenario-4-diagnostic-row is-selected scenario-4-analyzer-row';
+    diagnostic.dataset.kind = 'error';
+    diagnostic.dataset.code = 'ST001';
+    const leading = document.createElement('span');
+    leading.className = 'scenario-4-diagnostic-leading';
+    const spacer = document.createElement('span');
+    spacer.className = 'scenario-4-disclosure-spacer';
+    const icon = document.createElement('img');
+    icon.src = 'assets/icons/status-error.svg';
+    icon.alt = '';
+    leading.append(spacer, icon);
+    const code = document.createElement('span');
+    code.className = 'scenario-4-diagnostic-code';
+    code.textContent = 'ST001';
+    const description = document.createElement('span');
+    description.className = 'scenario-4-diagnostic-description';
+    description.textContent = "Переменная 'result' не объявлена.";
+    const location = document.createElement('span');
+    location.className = 'scenario-4-diagnostic-location scenario-4-analyzer-location';
+    location.textContent = 'calculate.st:6 · calculate.st:7';
+    diagnostic.append(leading, code, description, location);
+    diagnosticsRoot.replaceChildren(diagnostic);
+    previewRoot.replaceChildren();
+    previewRoot.classList.remove('has-content');
+    previewRoot.setAttribute('aria-label', 'Предпросмотр кода пуст');
+    root.dataset.activePanel = activePanel;
+    root.dataset.visibleDiagnosticRows = '1';
+  }
+
+  function renderBuild() {
+    activePanel = 'build';
+    analyzerPanelButton.classList.remove('is-active');
+    analyzerPanelButton.removeAttribute('aria-current');
+    buildPanelButton.classList.add('is-active');
+    buildPanelButton.setAttribute('aria-current', 'page');
+    panelTabIcon.src = 'scenarios/scenario-3/build-console.svg';
+    panelTabLabel.textContent = 'Сборка 23.06.2026 15:43';
+    resultBody.dataset.resultView = 'build';
+    diagnosticsRoot.setAttribute('aria-label', 'Диагностики сборки');
+    renderBuildCounters();
+    renderDiagnostics();
+    renderPreview();
+    root.dataset.activePanel = activePanel;
+  }
+
   function renderDiagnostics() {
     const visibleDiagnostics = activeFilters.size === 0
       ? diagnostics
@@ -128,11 +215,7 @@
       });
       return row;
     }));
-    document.querySelectorAll('[data-counter]').forEach(counter => {
-      const active = activeFilters.has(counter.dataset.counter);
-      counter.classList.toggle('is-active', active);
-      counter.setAttribute('aria-pressed', String(active));
-    });
+    renderBuildCounters();
     root.dataset.filtersApplied = String(activeFilters.size > 0);
     root.dataset.activeFilters = [...activeFilters].join(',');
     root.dataset.visibleDiagnosticRows = String(visibleDiagnostics.length);
@@ -169,11 +252,17 @@
     renderDocument();
   }));
   document.querySelectorAll('[data-counter]').forEach(counter => counter.addEventListener('click', () => {
+    if (activePanel !== 'build') return;
     const kind = counter.dataset.counter;
     if (activeFilters.has(kind)) activeFilters.delete(kind);
     else activeFilters.add(kind);
     renderDiagnostics();
   }));
+  analyzerPanelButton.addEventListener('click', renderAnalyzer);
+  buildPanelButton.addEventListener('click', renderBuild);
+  panelTab.addEventListener('click', () => {
+    if (activePanel === 'build') renderBuild();
+  });
 
   for (let i = 1; i <= 25; i += 1) lineNumbers.append(Object.assign(document.createElement('span'), { textContent: String(i) }));
   setupResizer(verticalResizer, 'vertical');
@@ -185,4 +274,5 @@
   root.dataset.errorCount = '11';
   root.dataset.warningCount = '2';
   root.dataset.infoCount = '1';
+  root.dataset.activePanel = activePanel;
 })();

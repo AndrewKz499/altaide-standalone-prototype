@@ -7,7 +7,7 @@
   <title>AltaIDE — Scenario 4 · S01</title>
   <link rel="icon" href="data:,">
   <link rel="stylesheet" href="prototype.css?v=9">
-  <link rel="stylesheet" href="scenarios/scenario-4/scenario.css?v=2">
+  <link rel="stylesheet" href="scenarios/scenario-4/scenario.css?v=3">
 </head>
 <body>
   <main class="ide" aria-label="AltaIDE, Scenario 4">
@@ -77,12 +77,12 @@
           <section class="bottom-panel scenario-4-build-panel" aria-label="Нижняя панель">
             <nav class="vertical-tabs" aria-label="Разделы нижней панели">
               <button type="button" aria-label="Консоль"><img src="assets/icons/panel-log.svg" alt=""></button>
-              <button class="has-notification" type="button" aria-label="Сообщения анализатора"><img src="assets/icons/panel-messages.svg" alt=""></button>
-              <button class="is-active has-notification" type="button" aria-label="Сборка" aria-current="page"><img src="scenarios/scenario-3/build-console.svg" alt=""></button>
+              <button class="has-notification" type="button" aria-label="Сообщения анализатора" data-panel="analyzer"><img src="assets/icons/panel-messages.svg" alt=""></button>
+              <button class="is-active has-notification" type="button" aria-label="Сборка" aria-current="page" data-panel="build"><img src="scenarios/scenario-3/build-console.svg" alt=""></button>
               <button type="button" aria-label="Переменные"><img src="assets/icons/panel-variables.svg" alt=""></button>
             </nav>
             <div class="scenario-4-build-content">
-              <div class="bottom-tabs scenario-4-build-tabs" role="tablist"><button class="is-active" type="button" role="tab" aria-selected="true"><img src="scenarios/scenario-3/build-console.svg" alt=""><span>Сборка 23.06.2026 15:43</span></button></div>
+              <div class="bottom-tabs scenario-4-build-tabs" role="tablist"><button class="is-active" type="button" role="tab" aria-selected="true" data-build-tab><img src="scenarios/scenario-3/build-console.svg" alt=""><span>Сборка 23.06.2026 15:43</span></button></div>
               <div class="context-toolbar scenario-4-build-toolbar" role="toolbar" aria-label="Счётчики сборки">
                 <div class="scenario-4-counters"><button class="scenario-4-counter" type="button" data-counter="error" aria-pressed="false" aria-label="Ошибки: 11"><img src="assets/icons/status-error.svg" alt=""><span>11</span></button><button class="scenario-4-counter" type="button" data-counter="warning" aria-pressed="false" aria-label="Предупреждения: 2"><img src="assets/icons/status-warning.svg" alt=""><span>2</span></button><button class="scenario-4-counter" type="button" data-counter="info" aria-pressed="false" aria-label="Информационные сообщения: 1"><img src="assets/icons/status-info.svg" alt=""><span>1</span></button></div>
                 <button class="context-more" type="button" aria-label="Дополнительные действия"><img src="assets/icons/context-more.svg" alt=""></button>
@@ -99,6 +99,6 @@
     </div>
     <footer class="statusbar" aria-hidden="true"></footer>
   </main>
-  <script src="scenarios/scenario-4/scenario.js?v=2"></script>
+  <script src="scenarios/scenario-4/scenario.js?v=3"></script>
 </body>
 </html>

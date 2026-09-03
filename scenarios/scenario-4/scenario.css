@@ -6,6 +6,7 @@
 .ide[aria-label="AltaIDE, Scenario 4"] .statusbar { display: none; }
 
 .scenario-4-build-panel .vertical-tabs button { cursor: default; }
+.scenario-4-build-panel .vertical-tabs button[data-panel] { cursor: pointer; }
 .scenario-4-build-panel .vertical-tabs button:not(.is-active):hover { background: transparent; }
 
 .scenario-4-build-content {
@@ -66,6 +67,8 @@
   outline-offset: -1px;
 }
 
+.scenario-4-counter:disabled { cursor: default; opacity: 1; }
+
 .scenario-4-counter img {
   width: 14px;
   height: 14px;
@@ -113,6 +116,15 @@
 .scenario-4-preview.has-content {
   overflow: auto;
   border-left: 1px solid var(--gray-13);
+}
+
+.scenario-4-result-body[data-result-view="analyzer"] {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.scenario-4-result-body[data-result-view="analyzer"] .scenario-4-preview-resizer,
+.scenario-4-result-body[data-result-view="analyzer"] .scenario-4-preview {
+  display: none;
 }
 
 .scenario-4-preview-heading {
@@ -177,6 +189,18 @@
 .scenario-4-diagnostic-row:hover,
 .scenario-4-diagnostic-row.is-selected {
   background: var(--gray-12);
+}
+
+.scenario-4-analyzer-row {
+  width: 100%;
+  min-width: 0;
+  height: 28px;
+  grid-template-columns: 44px 66px minmax(0, 1fr) 240px;
+  cursor: default;
+}
+
+.scenario-4-analyzer-location {
+  padding-right: 16px;
 }
 
 .scenario-4-diagnostic-leading {
