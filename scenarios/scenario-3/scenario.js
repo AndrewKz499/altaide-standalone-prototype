@@ -238,6 +238,16 @@ END_FUNCTION`
     );
   }
 
+  function syncDiagnosticBadges() {
+    const latestBuild = scenario.builds.at(-1);
+    const compilerBadgeVisible = Boolean(latestBuild?.counters.error);
+    const analyzerBadgeVisible = scenario.liveAnalyzerDiagnostics.length > 0;
+    buildPanelButton.classList.toggle('has-notification', compilerBadgeVisible);
+    analyzerPanelButton.classList.toggle('has-notification', analyzerBadgeVisible);
+    root.dataset.compilerBadgeVisible = String(compilerBadgeVisible);
+    root.dataset.analyzerBadgeVisible = String(analyzerBadgeVisible);
+  }
+
   function createBuildTab(snapshot, activeSnapshot) {
     const tab = document.createElement('button');
     const isActive = snapshot.id === activeSnapshot.id;
@@ -513,7 +523,7 @@ END_FUNCTION`
     analyzerPanelButton.classList.add('is-active');
     analyzerPanelButton.removeAttribute('aria-disabled');
     analyzerPanelButton.setAttribute('aria-current', 'page');
-    analyzerPanelButton.classList.remove('has-notification');
+    syncDiagnosticBadges();
 
     renderBuildCounters({
       counters: scenario.resultDeclarationValid
@@ -594,7 +604,7 @@ END_FUNCTION`
     else createFirstBuildSnapshot();
     renderCompilerTreeMarkers();
     scenario.pendingBuildId = null;
-    buildPanelButton.classList.add('has-notification');
+    syncDiagnosticBadges();
     buildPanelButton.removeAttribute('aria-disabled');
     buildPanelButton.setAttribute('aria-label', 'Сообщения компилятора');
   }
@@ -850,7 +860,7 @@ END_FUNCTION`
     scenario.liveAnalyzerDiagnostics = [ST001];
     setState('calculate-body-with-undeclared-result');
     analyzerPanelButton.removeAttribute('aria-disabled');
-    analyzerPanelButton.classList.add('has-notification');
+    syncDiagnosticBadges();
     renderDocument('compute-a');
   }
 
@@ -869,7 +879,7 @@ END_FUNCTION`
     scenario.dirty = true;
     scenario.liveAnalyzerDiagnostics = [];
     setState('result-declaration-fixed');
-    analyzerPanelButton.classList.remove('has-notification');
+    syncDiagnosticBadges();
     setCompileVisual('default', false);
     renderDocument('compute-a');
     showAnalyzer();
