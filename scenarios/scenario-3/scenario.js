@@ -451,6 +451,9 @@ END_FUNCTION`
     buildResult.hidden = false;
     root.dataset.activeBuildId = snapshot.id;
     root.dataset.activeBuildSnapshotSource = snapshot.sourceSnapshot['compute-a'] || '';
+    if (snapshot.id === 'build-2' && scenario.state === 'compiler-messages-build-2') {
+      renderDocument(activeDocument);
+    }
     renderCompilerTreeMarkers();
     setBottomHeight(412);
   }
