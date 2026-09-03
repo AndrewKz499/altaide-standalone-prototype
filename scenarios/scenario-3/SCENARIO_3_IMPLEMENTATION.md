@@ -21,8 +21,9 @@
 7. Build #2 → live `calculate` document → click `Вставьте код` → canonical body appears; live Analyzer reports ST001 while Build #1 and Build #2 remain unchanged.
 8. Analyzer ST001 → click `Объявите переменную` → `result : INT;` appears in live source; Analyzer clears immediately while Build history remains unchanged.
 9. Declared live source → Compile → Console/progress → immutable clean Build #3 (`23.06.2026 15:58`); Build #1 and Build #2 remain selectable and unchanged.
+10. Build history verified in reverse chronological order (`15:58` → `15:55` → `15:43`); historical counters, diagnostics, and previews remain snapshot-based and immutable.
+11. Full public regression verified from initial state through Build #3 with zero JavaScript errors and no broken assets.
 
-## Remaining flow
+## Status
 
-10. Verify build-history selection, counters, timestamps, diagnostics, and immutable previews.
-11. Final regression of the complete Scenario 3 flow.
+Scenario 3 is complete. All implementation steps follow the architecture contract above and pass public verification.
