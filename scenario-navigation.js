@@ -33,9 +33,15 @@
 
   const style = document.createElement("style");
   style.textContent = `
-    .scenario-navigation { position:fixed; top:100px; right:22px; z-index:10000; width:176px; max-height:calc(100vh - 122px); overflow:auto; padding:8px; border:1px solid rgba(148,163,204,.28); border-radius:9px; background:rgba(10,15,38,.94); box-shadow:0 12px 32px rgba(0,0,0,.38); backdrop-filter:blur(10px); font:500 12px/1.2 Inter,Arial,sans-serif; }
+    .scenario-navigation { position:fixed; top:100px; right:22px; z-index:10000; width:176px; max-width:calc(100vw - 16px); max-height:calc(100dvh - 16px); display:flex; flex-direction:column; overflow:hidden; padding:8px; border:1px solid rgba(148,163,204,.28); border-radius:9px; background:rgba(10,15,38,.94); box-shadow:0 12px 32px rgba(0,0,0,.38); backdrop-filter:blur(10px); font:500 12px/1.2 Inter,Arial,sans-serif; }
     .scenario-navigation a,.scenario-navigation button { display:block; width:100%; padding:8px 10px; border:1px solid transparent; border-radius:5px; background:transparent; color:#d8dced; font:inherit; text-align:left; text-decoration:none; outline:none; cursor:pointer; }
-    .scenario-navigation > :not(:first-child) { margin-top:2px; }
+    .scenario-navigation-content { min-height:0; overflow:auto; }
+    .scenario-navigation-content > :not(:first-child) { margin-top:2px; }
+    .scenario-navigation-content[hidden] { display:none; }
+    .scenario-navigation-header { display:flex; align-items:center; justify-content:space-between; gap:8px; flex:none; min-height:28px; padding-left:7px; cursor:grab; touch-action:none; user-select:none; color:#adb4ce; }
+    .scenario-navigation.is-dragging .scenario-navigation-header { cursor:grabbing; }
+    .scenario-navigation .scenario-navigation-collapse { width:28px; padding:5px; text-align:center; flex:none; }
+    .scenario-navigation.is-collapsed { width:132px; }
     .scenario-navigation a:hover,.scenario-navigation button:hover { background:rgba(111,126,189,.18); color:#fff; }
     .scenario-navigation a:focus-visible,.scenario-navigation button:focus-visible { border-color:#db70d9; box-shadow:0 0 0 1px rgba(219,112,217,.35); }
     .scenario-navigation [aria-current="page"],.scenario-navigation .scenario-navigation-toggle { background:rgba(135,79,194,.3); border-color:rgba(219,112,217,.48); color:#fff; }
@@ -53,10 +59,86 @@
   const navigation = document.createElement("nav");
   navigation.className = "scenario-navigation";
   navigation.setAttribute("aria-label", "Навигация по прототипам");
+  const storageKey = `altaide-navigation:${siteRoot}`;
+  let savedNavigation = {};
+  try { savedNavigation = JSON.parse(sessionStorage.getItem(storageKey)) || {}; } catch {}
+  const header = document.createElement("div");
+  header.className = "scenario-navigation-header";
+  const title = document.createElement("span");
+  title.textContent = "Навигация";
+  const collapseButton = document.createElement("button");
+  collapseButton.type = "button";
+  collapseButton.className = "scenario-navigation-collapse";
+  collapseButton.setAttribute("aria-controls", "scenario-navigation-content");
+  header.append(title, collapseButton);
+  const content = document.createElement("div");
+  content.id = "scenario-navigation-content";
+  content.className = "scenario-navigation-content";
+  navigation.append(header, content);
+  function saveNavigation() {
+    const rect = navigation.getBoundingClientRect();
+    savedNavigation.position = { x: rect.left, y: rect.top };
+    savedNavigation.collapsed = content.hidden;
+    savedNavigation.groups ||= {};
+    savedNavigation.groups[currentScenario] = Object.fromEntries(
+      [...content.querySelectorAll('.scenario-navigation-group')].map(group =>
+        [group.dataset.scenario, !group.querySelector('.scenario-navigation-actions').hidden])
+    );
+    try { sessionStorage.setItem(storageKey, JSON.stringify(savedNavigation)); } catch {}
+  }
+  function placeNavigation(x, y) {
+    const rect = navigation.getBoundingClientRect();
+    const margin = 8;
+    navigation.style.left = `${Math.max(margin, Math.min(x, window.innerWidth - rect.width - margin))}px`;
+    navigation.style.top = `${Math.max(margin, Math.min(y, window.innerHeight - rect.height - margin))}px`;
+    navigation.style.right = "auto";
+  }
+  function clampNavigation() {
+    const rect = navigation.getBoundingClientRect();
+    placeNavigation(rect.left, rect.top);
+    saveNavigation();
+  }
+  function setCollapsed(collapsed) {
+    content.hidden = collapsed;
+    navigation.classList.toggle("is-collapsed", collapsed);
+    collapseButton.textContent = collapsed ? "+" : "−";
+    collapseButton.setAttribute("aria-expanded", String(!collapsed));
+    collapseButton.setAttribute("aria-label", collapsed ? "Развернуть навигацию" : "Свернуть навигацию");
+  }
+  setCollapsed(savedNavigation.collapsed === true);
+  collapseButton.addEventListener("click", () => {
+    setCollapsed(!content.hidden);
+    clampNavigation();
+  });
+  let drag = null;
+  header.addEventListener("pointerdown", event => {
+    if (!event.isPrimary || event.button !== 0 || event.target.closest("button, a")) return;
+    const rect = navigation.getBoundingClientRect();
+    drag = { id: event.pointerId, offsetX: event.clientX - rect.left, offsetY: event.clientY - rect.top };
+    header.setPointerCapture(event.pointerId);
+    navigation.classList.add("is-dragging");
+    event.preventDefault();
+  });
+  header.addEventListener("pointermove", event => {
+    if (drag?.id !== event.pointerId) return;
+    placeNavigation(event.clientX - drag.offsetX, event.clientY - drag.offsetY);
+  });
+  const finishDrag = event => {
+    if (drag?.id !== event.pointerId) return;
+    drag = null;
+    navigation.classList.remove("is-dragging");
+    if (header.hasPointerCapture(event.pointerId)) header.releasePointerCapture(event.pointerId);
+    saveNavigation();
+  };
+  header.addEventListener("pointerup", finishDrag);
+  header.addEventListener("pointercancel", finishDrag);
+  header.addEventListener("lostpointercapture", finishDrag);
+  // Captured drags end on the header, never on a link beneath the pointer.
+  header.addEventListener("click", event => { if (!event.target.closest("button")) event.preventDefault(); });
   const homeLink = document.createElement("a");
   homeLink.href = `${siteRoot}/`;
   homeLink.textContent = "Главная";
-  navigation.append(homeLink);
+  content.append(homeLink);
 
   scenarioLinks.forEach(([scenarioId, label]) => {
     const group = document.createElement("div");
@@ -65,18 +147,19 @@
     const actions = document.createElement("div");
     actions.className = "scenario-navigation-actions";
     actions.id = `scenario-${scenarioId}-actions`;
-    actions.hidden = scenarioId !== currentScenario;
+    actions.hidden = !(savedNavigation.groups?.[currentScenario]?.[scenarioId] ?? (scenarioId === currentScenario));
     const toggleActions = button => {
       const expanded = button.getAttribute("aria-expanded") === "true";
       button.setAttribute("aria-expanded", String(!expanded));
       actions.hidden = expanded;
+      clampNavigation();
     };
     if (scenarioId === currentScenario) {
       const toggle = document.createElement("button");
       toggle.className = "scenario-navigation-toggle";
       toggle.type = "button";
       toggle.textContent = label;
-      toggle.setAttribute("aria-expanded", "true");
+      toggle.setAttribute("aria-expanded", String(!actions.hidden));
       toggle.setAttribute("aria-controls", actions.id);
       toggle.addEventListener("click", () => toggleActions(toggle));
       group.append(toggle);
@@ -90,7 +173,7 @@
       disclosure.className = "scenario-navigation-disclosure";
       disclosure.type = "button";
       disclosure.setAttribute("aria-label", `Раскрыть ${label}`);
-      disclosure.setAttribute("aria-expanded", "false");
+      disclosure.setAttribute("aria-expanded", String(!actions.hidden));
       disclosure.setAttribute("aria-controls", actions.id);
       disclosure.addEventListener("click", () => toggleActions(disclosure));
       row.append(scenarioLink, disclosure);
@@ -104,10 +187,16 @@
       actions.append(actionLink);
     });
     group.append(actions);
-    navigation.append(group);
+    content.append(group);
   });
   document.head.append(style);
   document.body.append(navigation);
+  if (Number.isFinite(savedNavigation.position?.x) && Number.isFinite(savedNavigation.position?.y)) {
+    placeNavigation(savedNavigation.position.x, savedNavigation.position.y);
+  }
+  clampNavigation();
+  window.addEventListener("resize", clampNavigation);
+  new ResizeObserver(clampNavigation).observe(navigation);
 
   const currentActions = scenarioActions[currentScenario] || [];
   const actionIds = new Set(currentActions.map(([id]) => id));
