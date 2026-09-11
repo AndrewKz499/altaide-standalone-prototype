@@ -100,41 +100,59 @@ END_FUNCTION`;
   ];
   const FIXED_CALCULATE_MARKUP = FIXED_CALCULATE_LINE_MARKUP.join('\n');
 
+  const CMP101_ERROR = Object.freeze({
+    code: 'CMP101',
+    description: "Функция 'compute' определена несколько раз. Функция с таким именем уже существует.",
+    location: '\\test\\src\\main.st:3:1'
+  });
+  const CMP101_DEFINITION = Object.freeze({
+    code: 'CMP101',
+    description: "Первый раз функция 'compute' определена здесь",
+    location: '\\test\\src\\compute.st:4:1'
+  });
+  const ST001_ERROR = Object.freeze({
+    code: 'ST001',
+    description: "Переменная 'result' не объявлена.",
+    location: '\\test\\src\\compute.st:5:6'
+  });
+
   const RUNNING_CONSOLE_LINES = [
     'Запущена генерация кода',
-    'Журнал сообщений - создан',
+    'Журнал сообщений создан',
     'Генерация файлов',
-    'NEED YOGI implementation:Please, Build this target with fort stageII',
     'Генерация исходных текстов завершена',
-    'executing \`C:\\Users\\t.yashina\\AppData\\Roaming\\AltaIDE\\Compiler\\bin\\castle.exe --',
-    'crate-name sys_prg code\\HardwareSpecific\\function.st code\\headers\\libc.sth',
-    'warning: 2 hidden warnings emitted',
-    'to show hidden diagnostics rerun with "--verbose" flag',
-    'executing "C:\\Users\\t.yashina\\AppData\\Roaming\\AltaIDE\\Compiler\\bin\\castle.exe --crate-name plc_prg fort\\main\\..\\..\\code\\main.st"',
-    'error: failed to resolve: could not find value "b"'
+    'Запущена компиляция проекта',
+    '',
+    `${CMP101_ERROR.code} — ${CMP101_ERROR.description}`,
+    `Место: ${CMP101_ERROR.location}`,
+    '',
+    `${CMP101_DEFINITION.code} — ${CMP101_DEFINITION.description}`,
+    `Место: ${CMP101_DEFINITION.location}`,
+    '',
+    'Сборка проекта завершена с ошибками.'
   ];
 
   const RECOMPILE_CONSOLE_LINES = [
     'Запущена генерация кода',
-    'Журнал сообщений - создан',
+    'Журнал сообщений создан',
     'Генерация файлов',
-    'NEED YOGI implementation:Please, Build this target with fort stageII',
     'Генерация исходных текстов завершена',
-    'executing `C:\\Users\\t.yashina\\AppData\\Roaming\\AltaIDE\\Compiler\\bin\\castle.exe --crate-name sys_prg code\\HardwareSpecific\\function.st code\\headers\\libc.sth',
-    'warning: 2 hidden warnings emitted',
-    'to show hidden diagnostics rerun with `--verbose` flag',
-    'executing `C:\\Users\\t.yashina\\AppData\\Roaming\\AltaIDE\\Compiler\\bin\\castle.exe --crate-name plc_prg fort\\main\\..\\..\\code\\main.st -',
-    'error: failed to resolve: could not find value `b`',
-    '--> C:\\Users\\t.yashina\\Documents\\Alta\\Project_9\\POU\\programm_1.st:5:1',
-    '| 5 | b:=a;',
-    '|   | ^ could not find value `b`',
-    'error: unresolved error: cannot write to a unresolved item',
-    '--> C:\\Users\\t.yashina\\Documents\\Alta\\Project_9\\POU\\programm_1.st:5:1',
-    '| 5 | b:=a;',
-    '|   | ^ cannot write to a unresolved item',
-    'error: aborting due to 3 previous errors; 2 hidden warnings emitted',
-    'error: process exited with error (exit code: 1)',
-    'command: `C:\\Users\\t.yashina\\AppData\\Roaming\\AltaIDE\\Compiler\\bin\\castle.exe --crate-name plc_prg code\\headers\\libc.sth code\\headers\\libc_user.sth code\\headers\\HSAL\\gpio_special_functions.sth`'
+    'Запущена компиляция проекта',
+    '',
+    `${ST001_ERROR.code} — ${ST001_ERROR.description}`,
+    `Место: ${ST001_ERROR.location}`,
+    '',
+    'Сборка проекта завершена с ошибками.'
+  ];
+
+  const FINAL_CONSOLE_LINES = [
+    'Запущена генерация кода',
+    'Журнал сообщений создан',
+    'Генерация файлов',
+    'Генерация исходных текстов завершена',
+    'Запущена компиляция проекта',
+    '',
+    'Сборка проекта успешно завершена.'
   ];
 
   const FAILED_DIAGNOSTICS = [
@@ -142,18 +160,14 @@ END_FUNCTION`;
       id: 'cmp101-root',
       severity: 'error',
       source: 'Компилятор',
-      code: 'CMP101',
-      description: "Функция 'compute' определена несколько раз. Функция с таким именем уже существует.",
-      location: '\\test\\src\\main.st:3:1'
+      ...CMP101_ERROR
     },
     {
       id: 'cmp101-definition',
       parentId: 'cmp101-root',
       severity: 'info',
       source: 'Компилятор',
-      code: 'CMP101',
-      description: "Первый раз функция 'compute' определена здесь",
-      location: '\\test\\src\\compute.st:4:1'
+      ...CMP101_DEFINITION
     }
   ];
 
@@ -162,9 +176,7 @@ END_FUNCTION`;
       id: 'st001-result',
       severity: 'error',
       source: 'Анализатор',
-      code: 'ST001',
-      description: "Переменная 'result' не объявлена.",
-      location: 'calculate.st:6'
+      ...ST001_ERROR
     }
   ];
 
@@ -374,7 +386,7 @@ END_FUNCTION`;
     ) || (
       scenarioState.step === 'analyzer-message'
       && item.id === 'st001-result'
-      && item.location === 'calculate.st:6'
+      && item.location === ST001_ERROR.location
     );
     const location = document.createElement(locationIsInteractive ? 'button' : 'span');
     location.className = locationIsInteractive ? 'diagnostic-location-button' : 'diagnostic-location';
@@ -414,8 +426,6 @@ END_FUNCTION`;
 
     scenarioState.step = 'diagnostic-expanded';
     scenarioState.diagnostics.expandedIds = [diagnosticId];
-    const parentDiagnostic = scenarioState.diagnostics.items.find(item => item.id === diagnosticId);
-    if (parentDiagnostic) parentDiagnostic.location = '\\test\\src\\compute.st:3:1';
     renderScenarioState();
   }
 
@@ -424,18 +434,18 @@ END_FUNCTION`;
     if (!location || !rows.contains(location)) return;
     if (scenarioState.step === 'analyzer-message') {
       if (location.dataset.diagnosticId !== 'st001-result') return;
-      if (location.dataset.diagnosticLocation !== 'calculate.st:6') return;
+      if (location.dataset.diagnosticLocation !== ST001_ERROR.location) return;
 
       scenarioState.step = 'analyzer-location';
       scenarioState.tree.selectedId = 'compute-definition';
       scenarioState.editorTabs.activeId = 'compute-b';
       scenarioState.activeDocument = 'compute-definition';
-      scenarioState.editorContent.activeLine = 6;
-      scenarioState.editorContent.highlightedLines = [6];
+      scenarioState.editorContent.activeLine = 5;
+      scenarioState.editorContent.highlightedLines = [5];
       scenarioState.editorContent.revealLocation = {
-        path: 'calculate.st',
-        line: 6,
-        column: 5
+        path: '\\test\\src\\compute.st',
+        line: 5,
+        column: 6
       };
       scenarioState.selectedDiagnostic = 'st001-result';
       renderAnalyzerLocation();
@@ -458,12 +468,6 @@ END_FUNCTION`;
     scenarioState.editorContent.activeLine = null;
     scenarioState.editorContent.highlightedLines = [];
     scenarioState.selectedDiagnostic = 'cmp101-definition';
-    scenarioState.diagnostics.items = scenarioState.diagnostics.items.map(item => ({
-      ...item,
-      location: item.id === 'cmp101-root'
-        ? '\\test\\src\\main.st:3:1'
-        : '\\test\\src\\main.st:4:1'
-    }));
     renderScenarioState();
   }
 
@@ -841,6 +845,14 @@ END_FUNCTION`;
     return scenarioState.diagnostics.items.some(item => item.id === id);
   }
 
+  function setDiagnosticTooltip(target, diagnostic, visible) {
+    if (visible) {
+      target.title = `${diagnostic.code} — ${diagnostic.description}\nМесто: ${diagnostic.location}`;
+    } else {
+      target.removeAttribute('title');
+    }
+  }
+
   function renderDiagnosticSurfaces() {
     const computeConflictUnresolved = hasDiagnostic('cmp101-root');
     const resultDeclarationResolved = [
@@ -869,21 +881,29 @@ END_FUNCTION`;
         );
       target.classList.toggle('has-diagnostic', showDiagnostic);
       target.classList.remove('has-diagnostic-badge');
+      const treeDiagnostic = computeConflictUnresolved
+        ? (isCalculateTreeRow ? CMP101_DEFINITION : CMP101_ERROR)
+        : ST001_ERROR;
+      setDiagnosticTooltip(target, treeDiagnostic, showDiagnostic);
     });
     const computeSourceTokens = [...document.querySelectorAll('.source-code .name')]
       .filter(token => (
         token.matches('input') ? token.value === 'compute' : token.textContent === 'compute'
       ));
-    computeSourceTokens.forEach(token => token.classList.toggle(
-      'has-diagnostic',
-      computeConflictUnresolved && !showsAnalyzerResult
-    ));
+    computeSourceTokens.forEach(token => {
+      const showDiagnostic = computeConflictUnresolved && !showsAnalyzerResult;
+      token.classList.toggle('has-diagnostic', showDiagnostic);
+      const sourceDiagnostic = scenarioState.activeDocument === 'compute-definition'
+        ? CMP101_DEFINITION
+        : CMP101_ERROR;
+      setDiagnosticTooltip(token, sourceDiagnostic, showDiagnostic);
+    });
     const resultTokens = [...document.querySelectorAll('[data-diagnostic-target="result"]')];
-    resultTokens.forEach(token => token.classList.toggle(
-      'has-diagnostic',
-      (!resultDeclarationResolved && showsAnalyzerResult)
-        || scenarioState.step === 'final-compiling'
-    ));
+    resultTokens.forEach(token => {
+      const showDiagnostic = !resultDeclarationResolved && showsAnalyzerResult;
+      token.classList.toggle('has-diagnostic', showDiagnostic);
+      setDiagnosticTooltip(token, ST001_ERROR, showDiagnostic);
+    });
     messagePanelButton.classList.toggle('has-notification', [
       'compiling',
       'final-compiling'
@@ -1121,7 +1141,7 @@ END_FUNCTION`;
     scenarioState.toolbar.compile = 'active';
     scenarioState.bottomPanel.view = 'console';
     scenarioState.bottomPanel.title = 'Консоль';
-    scenarioState.bottomPanel.consoleLines = [...RECOMPILE_CONSOLE_LINES];
+    scenarioState.bottomPanel.consoleLines = [...FINAL_CONSOLE_LINES];
     scenarioState.diagnostics.items = [];
     scenarioState.diagnostics.expandedIds = [];
     scenarioState.counters = { error: 0, warning: 0, info: 0 };
@@ -1139,6 +1159,9 @@ END_FUNCTION`;
 
   function startCompilation() {
     if (isCompileBusy()) return;
+    const startsFinalCompile = scenarioState.step === 'result-declaration-fixed'
+      && scenarioState.editorContent.document.dirty
+      && revalidateFinalCompilationSource();
     const startsRecompile = scenarioState.step === 'fix-error'
       && scenarioState.editorContent.document.dirty
       && revalidateRecompileSource();
@@ -1146,11 +1169,12 @@ END_FUNCTION`;
       revealCalculateBodyStep();
       return;
     }
-    if (scenarioState.step !== 'initial' && !startsRecompile) return;
+    if (scenarioState.step !== 'initial' && !startsRecompile && !startsFinalCompile) return;
     compileTimers.forEach(timer => window.clearTimeout(timer));
     compileTimers = [];
     compileSequence += 1;
-    if (startsRecompile) enterRecompilePressed(compileSequence);
+    if (startsFinalCompile) enterFinalCompilePressed(compileSequence);
+    else if (startsRecompile) enterRecompilePressed(compileSequence);
     else enterPressed(compileSequence);
   }
 
