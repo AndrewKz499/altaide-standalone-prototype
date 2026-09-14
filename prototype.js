@@ -13,6 +13,7 @@
   const tableScroll = document.querySelector('.table-scroll');
   const consoleOutput = document.getElementById('console-output');
   const rows = document.getElementById('message-rows');
+  const statusCounters = document.querySelector('.status-counters');
   const counterButtons = [...document.querySelectorAll('[data-counter]')];
   const statusbarBuild = document.getElementById('statusbar-build');
   const statusbarLabel = document.getElementById('statusbar-label');
@@ -335,6 +336,7 @@ END_FUNCTION`;
       const activePanel = showConsole ? 'terminal' : 'messages';
       button.classList.toggle('is-active', button.dataset.panel === activePanel);
     });
+    statusCounters.hidden = showConsole;
     tableScroll.hidden = showConsole;
     consoleOutput.hidden = !showConsole;
     consoleOutput.textContent = scenarioState.bottomPanel.consoleLines.join('\n');

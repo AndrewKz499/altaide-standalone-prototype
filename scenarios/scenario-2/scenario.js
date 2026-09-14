@@ -18,6 +18,7 @@
   const consoleTab = document.querySelector('[data-console-tab]');
   const messageView = document.querySelector('[data-message-view]');
   const consoleView = document.querySelector('[data-console-view]');
+  const statusCounters = document.querySelector('.status-counters');
   const statusbarBuild = document.getElementById('statusbar-build');
   const statusbarLabel = document.getElementById('statusbar-label');
   const statusbarProgress = document.getElementById('statusbar-progress-value');
@@ -154,6 +155,7 @@ END_FUNCTION`;
   function showConsole(lines) {
     messageTabsContainer.hidden = true;
     consoleTab.hidden = false;
+    statusCounters.hidden = true;
     messageView.hidden = true;
     consoleView.hidden = false;
     consoleView.textContent = lines.join('\n');
@@ -337,6 +339,7 @@ END_FUNCTION`;
   function showMessages(tabName = 'compiler') {
     messageTabsContainer.hidden = false;
     consoleTab.hidden = true;
+    statusCounters.hidden = false;
     messageView.hidden = false;
     consoleView.hidden = true;
     consolePanelButton.classList.remove('is-active');

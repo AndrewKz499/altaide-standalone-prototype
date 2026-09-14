@@ -29,25 +29,28 @@
   };
 
   const diagnostics = Object.freeze([
-    { kind: 'error', code: 'CMP102', description: 'Лишний END_IF без соответствующего открывающего IF', file: 'calculate.st', line: ':5' },
-    { kind: 'error', code: 'TYP204', description: 'Нельзя присвоить значение REAL переменной типа BOOL', file: 'compute.st', line: ':12', disclosure: true },
-    { kind: 'error', code: 'VAR301', description: 'Переменная pressureLimit не объявлена в области видимости', file: 'compute.st', line: ':4' },
-    { kind: 'warning', code: 'VAR302', description: 'Имя ValveState уже объявлено в этом блоке', file: 'compute.st', line: ':9' },
-    { kind: 'warning', code: 'FB401', description: 'Не задан обязательный вход Enable у блока MotorStart', file: 'compute.st', line: ':21' },
-    { kind: 'error', code: 'FB402', description: 'Блок ValveController вызван как функция с возвращаемым значением', file: 'compute.st', line: ':15', disclosure: true },
-    { kind: 'info', code: 'ARR501', description: 'Индекс массива sensors[8] вне диапазона 0..7', file: 'compute.st', line: ':13' },
-    { kind: 'error', code: 'DIV601', description: 'Обнаружено деление на ноль в константном выражении', file: 'compute.st', line: ':6' },
-    { kind: 'error', code: 'RET701', description: 'Функция Normalize не возвращает значение на всех ветках', file: 'func.st', line: ':27' },
-    { kind: 'error', code: 'CFG801', description: 'Период задачи FST должен быть больше 0 мсекунд', file: 'task.cfg', line: ':2' },
-    { kind: 'error', code: 'LIB901', description: 'Версия библиотеки MotionLib несовместима с проектом', file: 'libs.cfg', line: ':1' },
-    { kind: 'error', code: 'IO902', description: 'Адрес %QX0.3 уже назначен другому выходу', file: 'io.st', line: ':41' },
-    { kind: 'error', code: 'PRG903', description: 'Программа Main не назначена ни одной задаче', file: 'boot.cfg', line: ':5' },
-    { kind: 'error', code: 'CMP101', description: 'После IF ожидается THEN, найден идентификатор pumpReady', file: 'main.st', line: ':7' }
+    { kind: 'error', code: 'CMP102', description: 'Лишний END_IF без соответствующего открывающего IF', location: 'test/src/calculate.st:5:1' },
+    { kind: 'error', code: 'TYP204', description: 'Нельзя присвоить значение REAL переменной типа BOOL', location: 'test/src/compute.st:12:1', disclosure: true },
+    { kind: 'error', code: 'VAR301', description: 'Переменная pressureLimit не объявлена в области видимости', location: 'test/src/compute.st:4:1' },
+    { kind: 'warning', code: 'VAR302', description: 'Имя ValveState уже объявлено в этом блоке', location: 'test/src/compute.st:9:1' },
+    { kind: 'warning', code: 'FB401', description: 'Не задан обязательный вход Enable у блока MotorStart', location: 'test/src/compute.st:21:1' },
+    { kind: 'error', code: 'FB402', description: 'Блок ValveController вызван как функция с возвращаемым значением', location: 'test/src/compute.st:15:1', disclosure: true },
+    { kind: 'info', code: 'ARR501', description: 'Индекс массива sensors[8] вне диапазона 0..7', location: 'test/src/compute.st:13:1' },
+    { kind: 'error', code: 'DIV601', description: 'Обнаружено деление на ноль в константном выражении', location: 'test/src/compute.st:6:1' },
+    { kind: 'error', code: 'RET701', description: 'Функция Normalize не возвращает значение на всех ветках', location: 'test/src/func.st:27:1' },
+    { kind: 'error', code: 'CFG801', description: 'Период задачи FST должен быть больше 0 мсекунд', location: 'test/task.cfg:2:17' },
+    { kind: 'error', code: 'LIB901', description: 'Версия библиотеки MotionLib несовместима с проектом', location: 'test/libs.cfg:1:1' },
+    { kind: 'error', code: 'IO902', description: 'Адрес %QX0.3 уже назначен другому выходу', location: 'test/src/io.st:41:1' },
+    { kind: 'error', code: 'PRG903', description: 'Программа Main не назначена ни одной задаче', location: 'test/boot.cfg:5:1' },
+    { kind: 'error', code: 'CMP101', description: 'После IF ожидается THEN, найден идентификатор pumpReady', location: 'test/src/main.st:7:1' }
   ]);
   const ST001 = Object.freeze({
     code: 'ST001',
     description: "Переменная 'result' не объявлена.",
-    locations: Object.freeze(['calculate.st:5', 'calculate.st:6'])
+    locations: Object.freeze([
+      'test/src/calculate.st:5:5',
+      'test/src/calculate.st:6:18'
+    ])
   });
 
   let activeDocumentId = 'calculate';
@@ -90,7 +93,7 @@
 
     const heading = document.createElement('div');
     heading.className = 'scenario-4-preview-heading';
-    heading.textContent = 'task.cfg';
+    heading.textContent = diagnostics.find(item => item.code === 'CFG801').location;
     const code = document.createElement('pre');
     code.className = 'scenario-4-preview-code';
     code.innerHTML = '<span><em>1</em><code><b>TASK</b> FST (</code></span>'
@@ -208,10 +211,7 @@
       description.textContent = item.description;
       const location = document.createElement('span');
       location.className = 'scenario-4-diagnostic-location';
-      location.textContent = item.file;
-      const line = document.createElement('em');
-      line.textContent = item.line;
-      location.append(line);
+      location.textContent = item.location;
       row.append(leading, code, description, location);
       row.addEventListener('click', () => {
         selectedDiagnosticCode = item.code;

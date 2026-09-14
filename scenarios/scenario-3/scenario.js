@@ -45,7 +45,10 @@ END_FUNCTION`;
   const ST001 = Object.freeze({
     code: 'ST001',
     description: "Переменная 'result' не объявлена.",
-    locations: Object.freeze(['calculate.st:6', 'calculate.st:7']),
+    locations: Object.freeze([
+      'test/src/calculate.st:6:5',
+      'test/src/calculate.st:7:18'
+    ]),
     documentId: 'compute-a'
   });
   const CMP101 = Object.freeze({
@@ -55,15 +58,15 @@ END_FUNCTION`;
       Object.freeze({
         id: 'compute-b:1',
         documentId: 'compute-b',
-        file: 'compute.st',
-        line: ':1',
+        file: 'test/src/compute.st',
+        line: ':1:1',
         kind: 'error'
       }),
       Object.freeze({
         id: 'compute-a:1',
         documentId: 'compute-a',
-        file: 'compute.st',
-        line: ':1',
+        file: 'test/src/compute.st',
+        line: ':1:1',
         kind: 'info',
         description: "Первый раз функция 'compute' определена здесь"
       })
