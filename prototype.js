@@ -337,6 +337,7 @@ END_FUNCTION`;
       button.classList.toggle('is-active', button.dataset.panel === activePanel);
     });
     statusCounters.hidden = showConsole;
+    statusCounters.style.display = showConsole ? 'none' : '';
     tableScroll.hidden = showConsole;
     consoleOutput.hidden = !showConsole;
     consoleOutput.textContent = scenarioState.bottomPanel.consoleLines.join('\n');
