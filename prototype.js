@@ -180,7 +180,12 @@ END_FUNCTION`;
     }
   ];
 
-  const ANALYZER_COUNTERS = { error: 2, warning: 0, info: 1 };
+  function countDiagnostics(items) {
+    return items.reduce((counts, item) => {
+      if (Object.hasOwn(counts, item.severity)) counts[item.severity] += 1;
+      return counts;
+    }, { error: 0, warning: 0, info: 0 });
+  }
   const initialEditorContents = createEditorContents();
 
   const scenarioState = {
@@ -768,7 +773,7 @@ END_FUNCTION`;
       ...ANALYZER_DIAGNOSTICS.map(item => ({ ...item })),
       ...compilerDiagnostics
     ];
-    scenarioState.counters = { ...ANALYZER_COUNTERS };
+    scenarioState.counters = countDiagnostics(scenarioState.diagnostics.items);
     scenarioState.selectedDiagnostic = null;
     renderEditorContent();
     renderDiagnostics();
@@ -806,7 +811,7 @@ END_FUNCTION`;
     scenarioState.diagnostics.items = [];
     scenarioState.diagnostics.expandedIds = [];
     scenarioState.selectedDiagnostic = null;
-    scenarioState.counters = { ...ANALYZER_COUNTERS };
+    scenarioState.counters = countDiagnostics(scenarioState.diagnostics.items);
     renderResultDeclarationFixed();
   }
 
@@ -1077,9 +1082,7 @@ END_FUNCTION`;
     scenarioState.diagnostics.items = analyzerFindings.map(item => ({ ...item }));
     scenarioState.diagnostics.expandedIds = [];
     scenarioState.selectedDiagnostic = null;
-    scenarioState.counters = analyzerFindings.length
-      ? { ...ANALYZER_COUNTERS }
-      : { error: 0, warning: 0, info: 0 };
+    scenarioState.counters = countDiagnostics(scenarioState.diagnostics.items);
     scenarioState.statusBar = { mode: 'idle', label: '', progress: 0 };
     compileTimers = [];
     renderScenarioState();
