@@ -846,18 +846,9 @@ END_FUNCTION`;
   }
 
   function syncMessageErrorBadge() {
-    const activeErrorIds = new Set(
-      scenarioState.diagnostics.items
-        .filter(item => item.severity === 'error')
-        .map(item => item.id)
-    );
-    const calculateDocument = scenarioState.documents['compute-definition'];
-    const hasLiveAnalyzerError = Boolean(
-      calculateDocument?.validation.calculateBody.satisfied
-      && !calculateDocument.validation.resultDeclaration.satisfied
-    );
-    if (hasLiveAnalyzerError) activeErrorIds.add('st001-result');
-    const activeErrorCount = activeErrorIds.size;
+    const activeErrorCount = scenarioState.diagnostics.items.filter(
+      item => item.severity === 'error'
+    ).length;
     messagePanelButton.classList.toggle('has-notification', activeErrorCount > 0);
     root.dataset.messageErrorCount = String(activeErrorCount);
     root.dataset.messageBadgeVisible = String(activeErrorCount > 0);
@@ -1064,9 +1055,6 @@ END_FUNCTION`;
     scenarioState.bottomPanel.view = 'console';
     scenarioState.bottomPanel.title = 'Консоль';
     scenarioState.bottomPanel.consoleLines = [...RECOMPILE_CONSOLE_LINES];
-    scenarioState.diagnostics.items = [];
-    scenarioState.diagnostics.expandedIds = [];
-    scenarioState.counters = { error: 0, warning: 0, info: 0 };
     scenarioState.statusBar = { mode: 'building', label: 'Сборка проекта', progress: 0.4 };
     renderScenarioState();
 
