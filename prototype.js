@@ -103,17 +103,17 @@ END_FUNCTION`;
   const CMP101_ERROR = Object.freeze({
     code: 'CMP101',
     description: "Функция 'compute' определена несколько раз. Функция с таким именем уже существует.",
-    location: '\\test\\src\\main.st:3:1'
+    location: 'test/src/compute.st:1:1'
   });
   const CMP101_DEFINITION = Object.freeze({
     code: 'CMP101',
     description: "Первый раз функция 'compute' определена здесь",
-    location: '\\test\\src\\compute.st:4:1'
+    location: 'test/src/compute.st:1:1'
   });
   const ST001_ERROR = Object.freeze({
     code: 'ST001',
     description: "Переменная 'result' не объявлена.",
-    location: '\\test\\src\\compute.st:5:6'
+    location: 'test/src/compute.st:6:5'
   });
 
   const RUNNING_CONSOLE_LINES = [
@@ -440,12 +440,12 @@ END_FUNCTION`;
       scenarioState.tree.selectedId = 'compute-definition';
       scenarioState.editorTabs.activeId = 'compute-b';
       scenarioState.activeDocument = 'compute-definition';
-      scenarioState.editorContent.activeLine = 5;
-      scenarioState.editorContent.highlightedLines = [5];
+      scenarioState.editorContent.activeLine = 6;
+      scenarioState.editorContent.highlightedLines = [6];
       scenarioState.editorContent.revealLocation = {
-        path: '\\test\\src\\compute.st',
-        line: 5,
-        column: 6
+        path: 'test/src/compute.st',
+        line: 6,
+        column: 5
       };
       scenarioState.selectedDiagnostic = 'st001-result';
       renderAnalyzerLocation();
@@ -453,7 +453,7 @@ END_FUNCTION`;
     }
     if (scenarioState.step !== 'diagnostic-expanded') return;
     if (location.dataset.diagnosticId !== 'cmp101-definition') return;
-    if (location.dataset.diagnosticLocation !== '\\test\\src\\compute.st:4:1') return;
+    if (location.dataset.diagnosticLocation !== CMP101_DEFINITION.location) return;
 
     scenarioState.step = 'fix-error';
     scenarioState.tree.selectedId = 'compute-definition';
@@ -461,8 +461,8 @@ END_FUNCTION`;
     scenarioState.activeDocument = 'compute-definition';
     scenarioState.editorContent = scenarioState.documents['compute-definition'];
     scenarioState.editorContent.revealLocation = {
-      path: '\\test\\src\\compute.st',
-      line: 4,
+      path: 'test/src/compute.st',
+      line: 1,
       column: 1
     };
     scenarioState.editorContent.activeLine = null;
