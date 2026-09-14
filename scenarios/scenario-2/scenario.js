@@ -36,11 +36,11 @@
     code: 'CMP101',
     severity: 'error',
     description: "Функция 'compute' определена несколько раз.",
-    location: '\\test\\src\\compute.st:1:1',
+    location: 'test/src/compute.st:1:1',
     documentId: 'compute-b',
     child: {
       description: "Первый раз функция 'compute' определена здесь",
-      location: '\\test\\src\\compute.st:1:1',
+      location: 'test/src/compute.st:1:1',
       documentId: 'compute-a'
     }
   };
@@ -72,7 +72,7 @@
     code: 'ST001',
     severity: 'error',
     description: "Переменная 'result' не объявлена.",
-    locations: ['calculate.st:6', 'calculate.st:7'],
+    locations: ['test/src/compute.st:6:5', 'test/src/compute.st:7:18'],
     documentId: 'compute-a'
   };
   const DOCUMENT_MARKUP = {
@@ -564,7 +564,7 @@ END_FUNCTION`;
   }
 
   function revealEditorLine() {
-    const sourceLine = Number(scenario.revealLocation?.match(/:(\d+)$/)?.[1]);
+    const sourceLine = Number(scenario.revealLocation?.match(/:(\d+)(?::\d+)?$/)?.[1]);
     return Number.isFinite(sourceLine) ? sourceLine : 6;
   }
 
