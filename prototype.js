@@ -14,6 +14,7 @@
   const consoleOutput = document.getElementById('console-output');
   const rows = document.getElementById('message-rows');
   const contextToolbar = document.querySelector('.context-toolbar');
+  const bottomContent = document.querySelector('.bottom-content');
   const counterButtons = [...document.querySelectorAll('[data-counter]')];
   const statusbarBuild = document.getElementById('statusbar-build');
   const statusbarLabel = document.getElementById('statusbar-label');
@@ -338,6 +339,7 @@ END_FUNCTION`;
     });
     contextToolbar.hidden = showConsole;
     contextToolbar.style.display = showConsole ? 'none' : '';
+    bottomContent.style.gridTemplateRows = showConsole ? '40px minmax(0, 1fr)' : '';
     tableScroll.hidden = showConsole;
     consoleOutput.hidden = !showConsole;
     consoleOutput.textContent = scenarioState.bottomPanel.consoleLines.join('\n');
