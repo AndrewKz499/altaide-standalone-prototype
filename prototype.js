@@ -845,6 +845,15 @@ END_FUNCTION`;
     return scenarioState.diagnostics.items.some(item => item.id === id);
   }
 
+  function syncMessageErrorBadge() {
+    const activeErrorCount = scenarioState.diagnostics.items.filter(
+      item => item.severity === 'error'
+    ).length;
+    messagePanelButton.classList.toggle('has-notification', activeErrorCount > 0);
+    root.dataset.messageErrorCount = String(activeErrorCount);
+    root.dataset.messageBadgeVisible = String(activeErrorCount > 0);
+  }
+
   function setDiagnosticTooltip(target, diagnostic, visible) {
     if (visible) {
       target.title = `${diagnostic.code} — ${diagnostic.description}\nМесто: ${diagnostic.location}`;
@@ -904,10 +913,7 @@ END_FUNCTION`;
       token.classList.toggle('has-diagnostic', showDiagnostic);
       setDiagnosticTooltip(token, ST001_ERROR, showDiagnostic);
     });
-    messagePanelButton.classList.toggle('has-notification', [
-      'compiling',
-      'final-compiling'
-    ].includes(scenarioState.step));
+    syncMessageErrorBadge();
     contextFilterButton.classList.remove('has-notification');
   }
 
@@ -1049,9 +1055,6 @@ END_FUNCTION`;
     scenarioState.bottomPanel.view = 'console';
     scenarioState.bottomPanel.title = 'Консоль';
     scenarioState.bottomPanel.consoleLines = [...RECOMPILE_CONSOLE_LINES];
-    scenarioState.diagnostics.items = [];
-    scenarioState.diagnostics.expandedIds = [];
-    scenarioState.counters = { error: 0, warning: 0, info: 0 };
     scenarioState.statusBar = { mode: 'building', label: 'Сборка проекта', progress: 0.4 };
     renderScenarioState();
 
