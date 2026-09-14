@@ -10,10 +10,6 @@
 
 .bottom-tabs button { padding-inline: 14px; }
 
-.status-counters button:nth-child(1) { background: #9e425c; }
-.status-counters button:nth-child(2) { background: #8f793c; }
-.status-counters button:nth-child(3) { background: #496da8; }
-
 .table-scroll { scrollbar-width: none; }
 .table-scroll::-webkit-scrollbar { width: 0; height: 0; }
 .messages-table { min-width: 100%; }
@@ -42,51 +38,6 @@
   background: transparent;
   font: inherit;
   line-height: inherit;
-}
-
-html:is(
-  [data-scenario-step="compiler-messages-collapsed"],
-  [data-scenario-step="compiler-messages-expanded"],
-  [data-scenario-step="diagnostic-location"],
-  [data-scenario-step="name-conflict-editing"],
-  [data-scenario-step="name-conflict-fixed-source"]
-) .status-counters button:nth-child(1),
-html:is(
-  [data-scenario-step="compiler-messages-collapsed"],
-  [data-scenario-step="compiler-messages-expanded"],
-  [data-scenario-step="diagnostic-location"],
-  [data-scenario-step="name-conflict-editing"],
-  [data-scenario-step="name-conflict-fixed-source"]
-) .status-counters button:nth-child(2) {
-  background: var(--gray-11);
-}
-
-html:is(
-  [data-scenario-step="compiler-messages-collapsed"],
-  [data-scenario-step="compiler-messages-expanded"],
-  [data-scenario-step="diagnostic-location"],
-  [data-scenario-step="name-conflict-editing"],
-  [data-scenario-step="name-conflict-fixed-source"]
-) .status-counters button:nth-child(3) {
-  background: transparent;
-}
-
-html:is(
-  [data-scenario-step="analyzer-messages-st001"],
-  [data-scenario-step="st001-location"],
-  [data-scenario-step="result-declaration-editing"],
-  [data-scenario-step="result-declaration-fixed"]
-) .status-counters button:nth-child(2) {
-  background: var(--gray-11);
-}
-
-html:is(
-  [data-scenario-step="analyzer-messages-st001"],
-  [data-scenario-step="st001-location"],
-  [data-scenario-step="result-declaration-editing"],
-  [data-scenario-step="result-declaration-fixed"]
-) .status-counters button:nth-child(3) {
-  background: transparent;
 }
 
 html:is(
