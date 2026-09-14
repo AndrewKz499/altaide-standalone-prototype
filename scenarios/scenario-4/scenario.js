@@ -47,7 +47,7 @@
   const ST001 = Object.freeze({
     code: 'ST001',
     description: "Переменная 'result' не объявлена.",
-    locations: Object.freeze(['calculate.st:5', 'calculate.st:6'])
+    locations: Object.freeze(['test/src/compute.st:5:5', 'test/src/compute.st:6:18'])
   });
 
   let activeDocumentId = 'calculate';
