@@ -72,7 +72,7 @@
     code: 'ST001',
     severity: 'error',
     description: "Переменная 'result' не объявлена.",
-    locations: ['test/src/compute.st:6:5', 'test/src/compute.st:7:18'],
+    locations: ['test/src/calculate.st:6:5', 'test/src/calculate.st:7:18'],
     documentId: 'compute-a'
   };
   const DOCUMENT_MARKUP = {
