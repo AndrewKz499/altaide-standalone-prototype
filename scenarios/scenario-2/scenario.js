@@ -34,6 +34,7 @@
   const RUNNING_DELAY_MS = 3200;
   const CMP101 = {
     code: 'CMP101',
+    severity: 'error',
     description: "Функция 'compute' определена несколько раз.",
     location: '\\test\\src\\compute.st:1:1',
     documentId: 'compute-b',
@@ -69,6 +70,7 @@
   ];
   const ST001 = {
     code: 'ST001',
+    severity: 'error',
     description: "Переменная 'result' не объявлена.",
     locations: ['calculate.st:6', 'calculate.st:7'],
     documentId: 'compute-a'
@@ -318,6 +320,7 @@ END_FUNCTION`;
     if (showCmp101) setCounters(1, 0, 1);
     else if (showSt001) setCounters(1, 0, 0);
     else setCounters(0, 0, 0);
+    syncMessageErrorBadge();
   }
 
   function setActiveMessageTab(tabName) {
@@ -347,6 +350,24 @@ END_FUNCTION`;
     statusbarProgress.style.width = active ? '40%' : '0';
   }
 
+  function getActiveDiagnostics() {
+    const activeDiagnostics = [];
+    if (scenario.hasCmp101) activeDiagnostics.push(CMP101);
+    if (scenario.bodyValid && !scenario.resultDeclarationValid) {
+      activeDiagnostics.push(ST001);
+    }
+    return activeDiagnostics;
+  }
+
+  function syncMessageErrorBadge() {
+    const activeErrorCount = getActiveDiagnostics().filter(
+      diagnostic => diagnostic.severity === 'error'
+    ).length;
+    messagesPanelButton.classList.toggle('has-notification', activeErrorCount > 0);
+    root.dataset.messageErrorCount = String(activeErrorCount);
+    root.dataset.messageBadgeVisible = String(activeErrorCount > 0);
+  }
+
   function setConflictMarkers(active) {
     documentRows.forEach(row => row.classList.toggle('has-diagnostic', active));
     document.querySelectorAll('[data-compute-identifier]').forEach(identifier => {
@@ -355,7 +376,7 @@ END_FUNCTION`;
         : identifier.textContent;
       identifier.classList.toggle('has-diagnostic', active && identifierName === 'compute');
     });
-    messagesPanelButton.classList.toggle('has-notification', active);
+    syncMessageErrorBadge();
   }
 
   function setUndeclaredResultMarkers(active) {
@@ -367,7 +388,7 @@ END_FUNCTION`;
     document.querySelectorAll('[data-result-identifier]').forEach(identifier => {
       identifier.classList.toggle('has-diagnostic', active);
     });
-    messagesPanelButton.classList.toggle('has-notification', active);
+    syncMessageErrorBadge();
   }
 
   function refreshProblemMarkers() {
@@ -780,8 +801,8 @@ END_FUNCTION`;
     if (sequence !== scenario.sequence || scenario.state !== 'compiling') return;
     setState('compile-failed');
     setCompileVisual('default', true);
-    setConflictMarkers(true);
     scenario.hasCmp101 = true;
+    setConflictMarkers(true);
     showConsole(FAILED_CONSOLE_LINES);
     setBuilding(false);
     scenario.timers = [];
