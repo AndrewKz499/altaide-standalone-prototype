@@ -38,12 +38,17 @@
     { kind: 'info', code: 'ARR501', description: 'Индекс массива sensors[8] вне диапазона 0..7', file: 'compute.st', line: ':13' },
     { kind: 'error', code: 'DIV601', description: 'Обнаружено деление на ноль в константном выражении', file: 'compute.st', line: ':6' },
     { kind: 'error', code: 'RET701', description: 'Функция Normalize не возвращает значение на всех ветках', file: 'func.st', line: ':27' },
-    { kind: 'error', code: 'CFG801', description: 'Период задачи FST должен быть больше 0 мсекунд', file: 'task.cfg', line: ':3' },
+    { kind: 'error', code: 'CFG801', description: 'Период задачи FST должен быть больше 0 мсекунд', file: 'task.cfg', line: ':2' },
     { kind: 'error', code: 'LIB901', description: 'Версия библиотеки MotionLib несовместима с проектом', file: 'libs.cfg', line: ':1' },
     { kind: 'error', code: 'IO902', description: 'Адрес %QX0.3 уже назначен другому выходу', file: 'io.st', line: ':41' },
     { kind: 'error', code: 'PRG903', description: 'Программа Main не назначена ни одной задаче', file: 'boot.cfg', line: ':5' },
     { kind: 'error', code: 'CMP101', description: 'После IF ожидается THEN, найден идентификатор pumpReady', file: 'main.st', line: ':7' }
   ]);
+  const ST001 = Object.freeze({
+    code: 'ST001',
+    description: "Переменная 'result' не объявлена.",
+    locations: Object.freeze(['calculate.st:5', 'calculate.st:6'])
+  });
 
   let activeDocumentId = 'calculate';
   const activeFilters = new Set();
@@ -121,7 +126,7 @@
     panelTabIcon.src = 'assets/icons/panel-messages.svg';
     panelTabLabel.textContent = 'Сообщения анализатора';
     resultBody.dataset.resultView = 'analyzer';
-    diagnosticsRoot.setAttribute('aria-label', 'Сообщения анализатора: одна ошибка ST001');
+    diagnosticsRoot.setAttribute('aria-label', `Сообщения анализатора: одна ошибка ${ST001.code}`);
 
     document.querySelectorAll('[data-counter]').forEach(counter => {
       setCounter(counter, counter.dataset.counter === 'error' ? 1 : 0, true);
@@ -132,7 +137,7 @@
     const diagnostic = document.createElement('div');
     diagnostic.className = 'scenario-4-diagnostic-row is-selected scenario-4-analyzer-row';
     diagnostic.dataset.kind = 'error';
-    diagnostic.dataset.code = 'ST001';
+    diagnostic.dataset.code = ST001.code;
     const leading = document.createElement('span');
     leading.className = 'scenario-4-diagnostic-leading';
     const spacer = document.createElement('span');
@@ -143,13 +148,13 @@
     leading.append(spacer, icon);
     const code = document.createElement('span');
     code.className = 'scenario-4-diagnostic-code';
-    code.textContent = 'ST001';
+    code.textContent = ST001.code;
     const description = document.createElement('span');
     description.className = 'scenario-4-diagnostic-description';
-    description.textContent = "Переменная 'result' не объявлена.";
+    description.textContent = ST001.description;
     const location = document.createElement('span');
     location.className = 'scenario-4-diagnostic-location scenario-4-analyzer-location';
-    location.textContent = 'calculate.st:6 · calculate.st:7';
+    location.textContent = ST001.locations.join(' · ');
     diagnostic.append(leading, code, description, location);
     diagnosticsRoot.replaceChildren(diagnostic);
     previewRoot.replaceChildren();

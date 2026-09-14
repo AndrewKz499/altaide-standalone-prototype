@@ -50,14 +50,13 @@ END_FUNCTION`;
   });
   const CMP101 = Object.freeze({
     code: 'CMP101',
-    description: "Функция 'compute' определена несколько раз. Функция до...",
+    description: "Функция 'compute' определена несколько раз.",
     locations: Object.freeze([
       Object.freeze({
         id: 'compute-b:1',
         documentId: 'compute-b',
         file: 'compute.st',
         line: ':1',
-        previewPath: '.\\util\\src\\lib.st:9:1',
         kind: 'error'
       }),
       Object.freeze({
@@ -65,24 +64,43 @@ END_FUNCTION`;
         documentId: 'compute-a',
         file: 'compute.st',
         line: ':1',
-        previewPath: '.\\test\\src\\main.st:8:1',
         kind: 'info',
         description: "Первый раз функция 'compute' определена здесь"
       })
     ])
   });
-  const RUNNING_CONSOLE_LINES = [
+  const BUILD_PROGRESS_LINES = [
     'Запущена генерация кода',
-    'Журнал сообщений - создан',
+    'Журнал сообщений создан',
     'Генерация файлов',
-    'NEED YOGI implementation:Please, Build this target with fort stageII',
     'Генерация исходных текстов завершена',
-    'executing \`C:\\Users\\t.yashina\\AppData\\Roaming\\AltaIDE\\Compiler\\bin\\castle.exe --',
-    'crate-name sys_prg code\\HardwareSpecific\\function.st code\\headers\\libc.sth',
-    'warning: 2 hidden warnings emitted',
-    'to show hidden diagnostics rerun with \`--verbose\` flag',
-    'executing \`C:\\Users\\t.yashina\\AppData\\Roaming\\AltaIDE\\Compiler\\bin\\castle.exe --crate-name plc_prg fort\\main\\..\\..\\code\\main.st\`'
+    'Запущена компиляция проекта'
   ];
+
+  function buildConsoleResult(snapshot) {
+    if (!snapshot?.diagnostics.length) {
+      return [
+        ...BUILD_PROGRESS_LINES,
+        '',
+        'Сборка проекта успешно завершена.'
+      ];
+    }
+
+    const lines = [...BUILD_PROGRESS_LINES];
+    snapshot.diagnostics.forEach(diagnostic => {
+      const [rootLocation, ...linkedLocations] = diagnostic.locations;
+      lines.push(
+        '',
+        `${diagnostic.code}: ${diagnostic.description}`,
+        `Место: ${rootLocation.file}${rootLocation.line}`
+      );
+      linkedLocations.forEach(location => {
+        lines.push('', `${location.description}:`, `${location.file}${location.line}`);
+      });
+    });
+    lines.push('', 'Сборка проекта завершена с ошибками.');
+    return lines;
+  }
 
   const sourceDocuments = {
     'compute-a': {
@@ -378,14 +396,11 @@ END_FUNCTION`
 
     const message = document.createElement('div');
     message.className = 'build-preview-message';
-    message.append('error: the name ');
-    const symbol = document.createElement('code');
-    symbol.textContent = '`compute`';
-    message.append(symbol, ' is defined multiple times');
+    message.textContent = `${diagnostic.code}: ${diagnostic.description}`;
 
     const path = document.createElement('div');
     path.className = 'build-preview-path';
-    path.textContent = `  → ${location.previewPath}`;
+    path.textContent = `  → ${location.file}${location.line}`;
     output.append(message, path);
 
     const source = document.createElement('div');
@@ -408,11 +423,11 @@ END_FUNCTION`
 
     const conflict = document.createElement('div');
     conflict.className = 'build-preview-conflict';
-    conflict.textContent = "|_________________ ^ `compute` redefined here";
+    conflict.textContent = `|_________________ ^ ${location.description || diagnostic.description}`;
     const otherLocation = diagnostic.locations.find(item => item.id !== location.id);
     const related = document.createElement('div');
     related.className = 'build-preview-path build-preview-related';
-    related.textContent = `... ${otherLocation.previewPath}`;
+    related.textContent = `... ${otherLocation.file}${otherLocation.line}`;
 
     output.append(source, conflict, related);
     buildPreview.append(output);
@@ -575,7 +590,7 @@ END_FUNCTION`
         ? 'compiling-build-2'
         : 'compiling');
     setCompileVisual('active', true);
-    showConsole(RUNNING_CONSOLE_LINES);
+    showConsole(BUILD_PROGRESS_LINES);
     setBuilding(true);
     scenario.completionTimer = window.setTimeout(
       () => enterCompileComplete(sequence),
@@ -599,9 +614,12 @@ END_FUNCTION`
         : 'compile-complete');
     setCompileVisual('default', true);
     setBuilding(false);
-    if (buildId === 'build-3') createThirdBuildSnapshot();
-    else if (buildId === 'build-2') createSecondBuildSnapshot();
-    else createFirstBuildSnapshot();
+    const completedBuild = buildId === 'build-3'
+      ? createThirdBuildSnapshot()
+      : buildId === 'build-2'
+        ? createSecondBuildSnapshot()
+        : createFirstBuildSnapshot();
+    showConsole(buildConsoleResult(completedBuild));
     renderCompilerTreeMarkers();
     scenario.pendingBuildId = null;
     syncDiagnosticBadges();
@@ -1036,7 +1054,7 @@ END_FUNCTION`
       'compile-complete-build-3',
       'compiler-messages-build-3'
     ].includes(scenario.state)) return;
-    showConsole(RUNNING_CONSOLE_LINES);
+    showConsole(buildConsoleResult(scenario.builds.at(-1)));
   });
 
   analyzerPanelButton.addEventListener('click', showAnalyzer);

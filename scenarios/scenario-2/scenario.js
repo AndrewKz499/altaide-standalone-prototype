@@ -32,42 +32,41 @@
 
   const PRESS_DELAY_MS = 800;
   const RUNNING_DELAY_MS = 3200;
-  const RUNNING_CONSOLE_LINES = [
-    'Запущена генерация кода',
-    'Журнал сообщений - создан',
-    'Генерация файлов',
-    'NEED YOGI implementation:Please, Build this target with fort stageII',
-    'Генерация исходных текстов завершена',
-    'executing `C:\\Users\\t.yashina\\AppData\\Roaming\\AltaIDE\\Compiler\\bin\\castle.exe --',
-    'crate-name sys_prg code\\HardwareSpecific\\function.st code\\headers\\libc.sth',
-    'warning: 2 hidden warnings emitted',
-    'to show hidden diagnostics rerun with `--verbose` flag',
-    'executing `C:\\Users\\t.yashina\\AppData\\Roaming\\AltaIDE\\Compiler\\bin\\castle.exe --crate-name plc_prg fort\\main\\..\\..\\code\\main.st`'
-  ];
-  const FAILED_CONSOLE_LINES = [
-    ...RUNNING_CONSOLE_LINES,
-    'error: failed to resolve: could not find value `b`',
-    '--> C:\\Users\\t.yashina\\Documents\\Alta\\Project_9\\POU\\programm_1.st:5:1',
-    '| 5 | b:=a;',
-    '|   | ^ could not find value `b`',
-    'error: unresolved error: cannot write to a unresolved item',
-    '--> C:\\Users\\t.yashina\\Documents\\Alta\\Project_9\\POU\\programm_1.st:5:1',
-    '| 5 | b:=a;',
-    '|   | ^ cannot write to a unresolved item',
-    'error: aborting due to 3 previous errors; 2 hidden warnings emitted',
-    'error: process exited with error (exit code: 1)'
-  ];
-  const RECOMPILE_CONSOLE_LINES = [...RUNNING_CONSOLE_LINES];
   const CMP101 = {
     code: 'CMP101',
-    description: "Функция 'compute' определена несколько раз. Функци...",
-    location: '\\test\\src\\compute.st:3:1',
+    description: "Функция 'compute' определена несколько раз.",
+    location: '\\test\\src\\compute.st:1:1',
+    documentId: 'compute-b',
     child: {
       description: "Первый раз функция 'compute' определена здесь",
-      location: '\\test\\src\\compute.st:4:1',
+      location: '\\test\\src\\compute.st:1:1',
       documentId: 'compute-a'
     }
   };
+  const BUILD_PROGRESS_LINES = [
+    'Запущена генерация кода',
+    'Журнал сообщений создан',
+    'Генерация файлов',
+    'Генерация исходных текстов завершена',
+    'Запущена компиляция проекта'
+  ];
+  const FAILED_CONSOLE_LINES = [
+    ...BUILD_PROGRESS_LINES,
+    '',
+    `${CMP101.code}: ${CMP101.description}`,
+    `Место: ${CMP101.location}`,
+    '',
+    `${CMP101.child.description}:`,
+    CMP101.child.location,
+    '',
+    'Сборка проекта завершена с ошибками.'
+  ];
+  const RECOMPILE_CONSOLE_LINES = [...BUILD_PROGRESS_LINES];
+  const RECOMPILE_SUCCESS_CONSOLE_LINES = [
+    ...BUILD_PROGRESS_LINES,
+    '',
+    'Сборка проекта успешно завершена.'
+  ];
   const ST001 = {
     code: 'ST001',
     description: "Переменная 'result' не объявлена.",
@@ -316,9 +315,9 @@ END_FUNCTION`;
           ? 'Сообщения анализатора: одна ошибка ST001'
           : 'Пустая таблица сообщений'
     );
-    if (scenario.resultDeclarationValid || showSt001) setCounters(1, 0, 0);
-    else if (scenario.bodyValid) setCounters(2, 0, 1);
-    else setCounters(showCmp101 ? 1 : 0, 0, 0);
+    if (showCmp101) setCounters(1, 0, 1);
+    else if (showSt001) setCounters(1, 0, 0);
+    else setCounters(0, 0, 0);
   }
 
   function setActiveMessageTab(tabName) {
@@ -772,7 +771,7 @@ END_FUNCTION`;
     setState('compiling');
     setCompileVisual('active', true);
     setConflictMarkers(true);
-    showConsole(RUNNING_CONSOLE_LINES);
+    showConsole(BUILD_PROGRESS_LINES);
     setBuilding(true);
     scenario.timers.push(window.setTimeout(() => enterCompileFailed(sequence), RUNNING_DELAY_MS));
   }
@@ -809,7 +808,7 @@ END_FUNCTION`;
     scenario.cmp101Expanded = false;
     renderMessages();
     setConflictMarkers(false);
-    showConsole(RECOMPILE_CONSOLE_LINES);
+    showConsole(RECOMPILE_SUCCESS_CONSOLE_LINES);
     setBuilding(false);
     scenario.timers = [];
   }
@@ -1028,7 +1027,7 @@ END_FUNCTION`;
       'result-declaration-editing',
       'result-declaration-fixed'
     ].includes(scenario.state)) {
-      showConsole(RECOMPILE_CONSOLE_LINES);
+      showConsole(RECOMPILE_SUCCESS_CONSOLE_LINES);
       refreshProblemMarkers();
       if (event.detail > 0) consolePanelButton.blur();
       return;
